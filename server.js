@@ -45,9 +45,9 @@ io.on('connection', function(client){
 			return;
 		}
 
-		console.log('got a new message...');
-
 		message.from = client.sessionId;
+
+		console.log('recv: '+sys.inspect(message));
 
 		client.send(message);
 		client.broadcast(message);
