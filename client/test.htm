@@ -32,7 +32,7 @@ function serverConnection(config){
 		self.lastConnected = new Date().getTime();
 
 		self.emit('connected');
-		self.emit('status', true, 'Connected', 0);
+		self.emit('state', 'connected');
 	});
 
 	this.socket.on('close', function(){
@@ -42,7 +42,7 @@ function serverConnection(config){
 	this.socket.on('disconnect', function(){
 
 		self.emit('disconnected');
-		self.emit('status', false, 'Disconnected');
+		self.emit('state', 'disconnected');
 
 		// if we get disconnected, we will immediately
 		// try to reconnect. if we went offline on purpose,
@@ -58,7 +58,7 @@ function serverConnection(config){
 			if (!self.socket.connected) return;
 			var diff = (new Date().getTime()) - data.t;
 			if (diff < 0) diff = 0;
-			self.emit('status', true, 'Connected', diff);
+			self.emit('state', 'connected', diff);
 			//console.log('lag: '+diff);
 			return;
 		}
@@ -97,7 +97,7 @@ function serverConnection(config){
 	this.connect = function(){
 
 		self.online = true;
-		self.emit('status', false, 'Connecting...');
+		self.emit('state', 'connecting');
 		self.socket.connect();
 	}
 
@@ -109,8 +109,8 @@ function serverConnection(config){
 		if (self.giveupTimer) window.clearTimeout(self.giveupTimer);
 		self.giveupTimer = window.setTimeout(function(){ self.giveup(); }, self.config.giveup_interval);
 
-		// emit status change and then try to connect
-		self.emit('status', false, 'Reconnecting...');
+		// emit state change and then try to connect
+		self.emit('state', 'reconnecting');
 		self.socket.connect();
 	}
 
@@ -119,7 +119,7 @@ function serverConnection(config){
 		self.giveupTimer = null;
 		if (self.socket.connected) return;
 
-		self.emit('status', false, 'Disconnected');
+		self.emit('state', 'disconnected');
 	}
 
 
@@ -175,15 +175,34 @@ $(document).ready(function(){
 		giveup_interval	: 10000
 	});
 
-	con.on('status', function(online, status, lag){
-		if (online){
-			$('#con').addClass('online');
-			$('#lag').text(lag ? lag+'ms' : status);
-		}else{
-			$('#con').removeClass('online');
-			$('#lag').text(status);
+	con.on('state', function(state, lag){
+		switch (state){
+			case 'connected':
+				$('#con').addClass('online').removeClass('offline');
+				$('#lag').text(lag ? lag+'ms' : 'Connected');
+				break;
+
+			case 'disconnected':
+				$('#con').removeClass('online').addClass('offline');
+				$('#lag').text('Disconnected');
+				break;
+
+			case 'connecting':
+				$('#con').removeClass('online').removeClass('offline');
+				$('#lag').text('Connecting...');
+				break;
+
+			case 'reconnecting':
+				$('#con').removeClass('online').removeClass('offline');
+				$('#lag').text('Reconnecting...');
+				break;
+
+			default:
+				$('#con').removeClass('online').removeClass('offline');
+				$('#lag').text('Unknown: '+state);
 		}
 	});
+
 
 	con.on('message', function(msg){
 
@@ -208,6 +227,7 @@ $(document).ready(function(){
 	float: left;
 }
 #con.online { background-color: lime; }
+#con.offline { background-color: #999; }
 
 </style>
 
