@@ -128,18 +128,11 @@ function serverConnection(config){
 	// a ping message. if not, do nothing
 	//
 
-	self.pingTimer = window.setInterval(function(){ self.ping(); }, self.config.ping_interval);
-
-	this.ping = function(){
-		//if (!self.socket.connected){
-		//	self.reconnect();
-		//	return;
-		//}
+	self.pingTimer = window.setInterval(function(){
 		if (self.socket.connected){
 			self.socket.send({msg: 'ping', t: new Date().getTime()});
 		}
-	}
-
+	}, self.config.ping_interval);
 
 
 	//
