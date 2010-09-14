@@ -25,6 +25,41 @@ var server = http.createServer(function(req, res){
 server.listen(8080);
 
 
+
+function gameEngine(){
+
+	var self = this;
+
+	this.players = {};
+
+	this.addPlayer = function(client){
+		var uid = client.sessionId;
+		self.players[uid] = {
+			client: client,
+			x: 0,
+			y: 0,
+		};
+
+		client.broadcast({msg: 'joined', uid: uid});
+		client.send({msg: 'welcome'});
+	};
+
+	this.removePlayer = function(client){
+		var uid = client.sessionId;
+		delete self.players[uid];
+
+		client.broadcast({msg: 'left', uid: uid});
+	};
+
+	this.playerMsg = function(client, msg){
+
+		client.broadcast({msg: 'fwd', src: msg});
+		client.send({msg: 'fwd', src: msg});
+	};
+}
+
+var engine = new gameEngine();
+
 //
 // this is the socket.io server gubbins - it hijacks one path
 // for client<->server comm. in the near future, this will hook
@@ -32,11 +67,10 @@ server.listen(8080);
 //
 	
 var io = io.listen(server);
-		
-io.on('connection', function(client){
-	client.send({ msg: 'hello' });
 
-	client.broadcast({ announcement: client.sessionId + ' connected' });
+io.on('connection', function(client){
+
+	engine.addPlayer(client);
 
 	client.on('message', function(message){
 
@@ -45,15 +79,11 @@ io.on('connection', function(client){
 			return;
 		}
 
-		message.from = client.sessionId;
-
-		console.log('recv: '+sys.inspect(message));
-
-		client.send(message);
-		client.broadcast(message);
+		engine.playerMsg(client, message);
 	});
 
 	client.on('disconnect', function(){
-		client.broadcast({ announcement: client.sessionId + ' disconnected' });
+
+		engine.removePlayer(client);
 	});
 });
