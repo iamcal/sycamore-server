@@ -28,9 +28,11 @@ function serverConnection(config){
 	//
 
 	this.socket.on('connect', function(){
-		self.emit('status', true, 'Connected', 0);
+
 		self.lastConnected = new Date().getTime();
-		self.socket.send({msg: 'some data'});
+
+		self.emit('connected');
+		self.emit('status', true, 'Connected', 0);
 	});
 
 	this.socket.on('close', function(){
@@ -38,6 +40,8 @@ function serverConnection(config){
 	});
 
 	this.socket.on('disconnect', function(){
+
+		self.emit('disconnected');
 		self.emit('status', false, 'Disconnected');
 
 		// if we get disconnected, we will immediately
@@ -154,6 +158,15 @@ function serverConnection(config){
 	}
 
 
+	//
+	// send a message
+	//
+
+	this.send = function(msg){
+		self.socket.send(msg);
+	};
+
+
 	// delay this call so that the caller can set up event handlers
 	window.setTimeout(function(){ self.connect(); }, 0);
 }
@@ -182,6 +195,11 @@ $(document).ready(function(){
 	con.on('message', function(msg){
 
 		console.log('got a message!', msg);
+	});
+
+	con.on('connected', function(){
+
+		con.send({msg: 'some data'});
 	});
 });
 
