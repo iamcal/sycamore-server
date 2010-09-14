@@ -1,47 +1,41 @@
-var http = require('http'), 
-		url = require('url'),
-		fs = require('fs'),
-		io = require('../socket.io-node/'),
-		sys = require('sys'),
-		
-server = http.createServer(function(req, res){
-	// your normal server code
-	var path = url.parse(req.url).pathname;
-	switch (path){
-		case '/':
-			res.writeHead(200, {'Content-Type': 'text/html'});
-			res.write('<h1>Welcome. Try the <a href="/chat.html">chat</a> example.</h1>');
-			res.end();
-			break;
-			
-		case '/json.js':
-		case '/chat.html':
-			fs.readFile(__dirname + path, function(err, data){
-				if (err) return send404(res);
-				res.writeHead(200, {'Content-Type': path == 'json.js' ? 'text/javascript' : 'text/html'})
-				res.write(data, 'utf8');
-				res.end();
-			});
-			break;
-			
-		default: send404(res);
-	}
-}),
+var http = require('http');
+var url = require('url');
+var fs = require('fs');
+var io = require('../socket.io-node/');
+var sys = require('sys');
+var httpProxy = require('http-proxy');
 
-send404 = function(res){
-	res.writeHead(404);
-	res.write('404');
-	res.end();
-};
 
+//
+// our base server will proxy any regular requests through
+// to apache running behind it. only /socket.io/ requests
+// will be handled specially.
+//
+// in this version i'm listening on 8080 and proxying to
+// 80, but in real production you'd do it the other way
+// around, so everything could run over 80 for maximum
+// firewall goodness.
+//
+
+var server = http.createServer(function(req, res){
+
+	var proxy = new httpProxy.HttpProxy(req, res);
+	proxy.proxyRequest(80, 'localhost', req, res);
+});
 server.listen(8080);
-		
-// socket.io, I choose you
-// simplest chat application evar
+
+
+//
+// this is the socket.io server gubbins - it hijacks one path
+// for client<->server comm. in the near future, this will hook
+// into the actual game server instead of just echoing things.
+//
+	
 var io = io.listen(server);
 		
 io.on('connection', function(client){
 	client.send({ msg: 'hello' });
+
 	client.broadcast({ announcement: client.sessionId + ' connected' });
 
 	client.on('message', function(message){
