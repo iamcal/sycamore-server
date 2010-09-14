@@ -94,23 +94,28 @@ function serverConnection(config){
 	// the real guts
 	//
 
-	this.connect = function(){
+	this.brace_for_failure = function(){
 
+		// this timer is set up so that we can decide to just stop trying
+		// after a certain period.
+
+		if (self.giveupTimer) window.clearTimeout(self.giveupTimer);
+		self.giveupTimer = window.setTimeout(function(){ self.giveup(); }, self.config.giveup_interval);
+	}
+
+	this.connect = function(){
 		self.online = true;
 		self.emit('state', 'connecting');
+
+		self.brace_for_failure();
 		self.socket.connect();
 	}
 
 	this.reconnect = function(){
 		if (!self.online) return;
-
-		// this timer is set up so that we can decide to just stop trying
-		// after a certain period.
-		if (self.giveupTimer) window.clearTimeout(self.giveupTimer);
-		self.giveupTimer = window.setTimeout(function(){ self.giveup(); }, self.config.giveup_interval);
-
-		// emit state change and then try to connect
 		self.emit('state', 'reconnecting');
+
+		self.brace_for_failure();
 		self.socket.connect();
 	}
 
