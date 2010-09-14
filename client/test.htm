@@ -13,8 +13,8 @@ function serverConnection(config){
 	this.config = config;
 	this.online = false;
 	this.pingTimer = null;
-	this.everConnected = false;
-	this.lastConnected = new Date().getTime();
+	this.giveupTimer = null;
+	this.lastConnected = 0;
 	this.eventHandlers = {};
 
 	this.socket = new io.Socket(config.host, {
@@ -28,10 +28,11 @@ function serverConnection(config){
 	//
 
 	this.socket.on('connect', function(){
-		self.emit('status', true, 'Connected', 0);
-		self.everConnected = true;
+
 		self.lastConnected = new Date().getTime();
-		self.startPing();
+
+		self.emit('connected');
+		self.emit('state', 'connected');
 	});
 
 	this.socket.on('close', function(){
@@ -39,9 +40,16 @@ function serverConnection(config){
 	});
 
 	this.socket.on('disconnect', function(){
-		self.emit('status', false, 'Disconnected');
+
+		self.emit('disconnected');
+		self.emit('state', 'disconnected');
+
+		// if we get disconnected, we will immediately
+		// try to reconnect. if we went offline on purpose,
+		// self.online will be false so reconnect() will
+		// just no-op.
+
 		self.reconnect();
-		//console.log('disconnected');
 	});
 
 	this.socket.on('message', function(data){
@@ -50,7 +58,7 @@ function serverConnection(config){
 			if (!self.socket.connected) return;
 			var diff = (new Date().getTime()) - data.t;
 			if (diff < 0) diff = 0;
-			self.emit('status', true, 'Connected', diff);
+			self.emit('state', 'connected', diff);
 			//console.log('lag: '+diff);
 			return;
 		}
@@ -86,57 +94,55 @@ function serverConnection(config){
 	// the real guts
 	//
 
-	this.firstconnect = function(){
+	this.connect = function(){
 
 		self.online = true;
-		self.emit('status', false, 'Connecting...');
+		self.emit('state', 'connecting');
 		self.socket.connect();
-		self.socket.send({msg: 'some data'});
-		self.startPing();
 	}
 
 	this.reconnect = function(){
 		if (!self.online) return;
 
-		// how long have we been trying?
-		var n = new Date().getTime();
-		var diff = n - self.lastConnected;
-		if (diff > self.config.giveup_interval){
-			//console.log('trying for too long - giving up');
-			self.emit('status', false, 'Disconnected');
-			self.stopPing();
-			return;
+		// this timer is set up so that we can decide to just stop trying
+		// after a certain period.
+		if (self.giveupTimer) window.clearTimeout(self.giveupTimer);
+		self.giveupTimer = window.setTimeout(function(){ self.giveup(); }, self.config.giveup_interval);
+
+		// emit state change and then try to connect
+		self.emit('state', 'reconnecting');
+		self.socket.connect();
+	}
+
+	this.giveup = function(){
+		window.clearTimeout(self.giveupTimer);
+		self.giveupTimer = null;
+		if (self.socket.connected) return;
+
+		self.emit('state', 'disconnected');
+	}
+
+
+	//
+	// ping is a simple interval - if we're connected, send
+	// a ping message. if not, do nothing
+	//
+
+	self.pingTimer = window.setInterval(function(){
+		if (self.socket.connected){
+			self.socket.send({msg: 'ping', t: new Date().getTime()});
 		}
+	}, self.config.ping_interval);
 
-		if (self.everConnected){
-			self.emit('status', false, 'Reconnecting...');
-			self.socket.connect();
-			self.stopPing();
-		}
-	}
 
-	this.startPing = function(){
-		if (self.pingTimer) return;
-		self.pingTimer = window.setInterval(function(){ self.ping(); }, self.config.ping_interval);
-	}
-
-	this.stopPing = function(){
-		if (!self.pingTimer) return;
-		window.clearInterval(self.pingTimer);
-		self.pingTimer = null;
-	}
-
-	this.ping = function(){
-		if (!self.socket.connected){
-			self.reconnect();
-			return;
-		}
-		self.socket.send({msg: 'ping', t: new Date().getTime()});
-	}
+	//
+	// toggle the client on and off
+	//
 
 	this.go_online = function(){
+		if (self.socket.connected) return;
 		self.online = true;
-		self.ping();
+		self.reconnect();
 	}
 
 	this.go_offline = function(){
@@ -145,8 +151,17 @@ function serverConnection(config){
 	}
 
 
+	//
+	// send a message
+	//
+
+	this.send = function(msg){
+		self.socket.send(msg);
+	};
+
+
 	// delay this call so that the caller can set up event handlers
-	window.setTimeout(function(){ self.firstconnect(); }, 0);
+	window.setTimeout(function(){ self.connect(); }, 0);
 }
 
 var con;
@@ -156,28 +171,89 @@ $(document).ready(function(){
 	con = new serverConnection({
 		host		: 'iamcal.com',
 		port		: 8080,
-		ping_interval	: 3000, // also the reconnect timer
-		giveup_interval	: 30000
+		ping_interval	: 3000,
+		giveup_interval	: 10000
 	});
 
-	con.on('status', function(online, status, lag){
-		if (online){
-			$('#con').addClass('online');
-			$('#lag').text(lag ? lag+'ms' : status);
-		}else{
-			$('#con').removeClass('online');
-			$('#lag').text(status);
+	con.on('state', function(state, lag){
+		switch (state){
+			case 'connected':
+				$('#con').addClass('online').removeClass('offline');
+				$('#lag').text(lag ? lag+'ms' : 'Connected');
+				break;
+
+			case 'disconnected':
+				$('#con').removeClass('online').addClass('offline');
+				$('#lag').text('Disconnected');
+				break;
+
+			case 'connecting':
+				$('#con').removeClass('online').removeClass('offline');
+				$('#lag').text('Connecting...');
+				break;
+
+			case 'reconnecting':
+				$('#con').removeClass('online').removeClass('offline');
+				$('#lag').text('Reconnecting...');
+				break;
+
+			default:
+				$('#con').removeClass('online').removeClass('offline');
+				$('#lag').text('Unknown: '+state);
 		}
 	});
+
 
 	con.on('message', function(msg){
 
 		console.log('got a message!', msg);
 	});
+
+	con.on('connected', function(){
+
+		con.send({msg: 'some data'});
+	});
 });
 
 </script>
 <style>
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#statusbar {
+	position: absolute;
+	top: 0px;
+	left: 20px;
+	right: 20px;
+	height: 20px;
+	padding: 6px 20px;
+
+	-moz-border-radius-bottomleft: 10px;
+	-moz-border-radius-bottomright: 10px;
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+
+	border-left: 1px solid #C7C7C7;
+	border-right: 1px solid #C7C7C7;
+	border-bottom: 1px solid #C7C7C7;
+
+	background-color: #fff;
+	background-image: -moz-linear-gradient(center bottom, rgb(233,233,233) 0%, rgb(255,255,255) 100%);
+	background-image: -webkit-gradient(linear, left bottom, left top, color-stop(1, rgb(233,233,233)), color-stop(0, rgb(255,255,255)));
+
+	-moz-box-shadow:	inset 0 0 15px 1px rgba(255,255,255, 0.5), 0 1px 3px #999;
+	-webkit-box-shadow:	inset 0 0 15px 1px rgba(255,255,255, 0.5), 0 1px 3px #999;
+	box-shadow:		inset 0 0 15px 1px rgba(255,255,255, 0.5), 0 1px 3px #999;
+}
+
+#constatus {
+	float: right;
+	line-height: 20px;
+	font-size: 12px;
+	text-shadow: #fff 1px 1px;
+}
 
 #con {
 	width: 16px;
@@ -188,10 +264,13 @@ $(document).ready(function(){
 	float: left;
 }
 #con.online { background-color: lime; }
+#con.offline { background-color: #999; }
 
 </style>
 
 <div id="statusbar">
-	<div id="con"></div>
-	<span id="lag">Disconnected</span>
+	<div id="constatus">
+		<div id="con"></div>
+		<span id="lag">Disconnected</span>
+	</div>
 </div>
