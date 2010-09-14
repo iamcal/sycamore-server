@@ -13,8 +13,8 @@ function serverConnection(config){
 	this.config = config;
 	this.online = false;
 	this.pingTimer = null;
-	this.everConnected = false;
-	this.lastConnected = new Date().getTime();
+	this.giveupTimer = null;
+	this.lastConnected = 0;
 	this.eventHandlers = {};
 
 	this.socket = new io.Socket(config.host, {
@@ -29,9 +29,8 @@ function serverConnection(config){
 
 	this.socket.on('connect', function(){
 		self.emit('status', true, 'Connected', 0);
-		self.everConnected = true;
 		self.lastConnected = new Date().getTime();
-		self.startPing();
+		self.socket.send({msg: 'some data'});
 	});
 
 	this.socket.on('close', function(){
@@ -40,9 +39,13 @@ function serverConnection(config){
 
 	this.socket.on('disconnect', function(){
 		self.emit('status', false, 'Disconnected');
-		self.lastConnected = new Date().getTime();
+
+		// if we get disconnected, we will immediately
+		// try to reconnect. if we went offline on purpose,
+		// self.online will be false so reconnect() will
+		// just no-op.
+
 		self.reconnect();
-		//console.log('disconnected');
 	});
 
 	this.socket.on('message', function(data){
@@ -87,62 +90,62 @@ function serverConnection(config){
 	// the real guts
 	//
 
-	this.firstconnect = function(){
+	this.connect = function(){
 
 		self.online = true;
 		self.emit('status', false, 'Connecting...');
 		self.socket.connect();
-		self.socket.send({msg: 'some data'});
-		self.startPing();
 	}
 
 	this.reconnect = function(){
 		if (!self.online) return;
 
-		// how long have we been trying?
-		var n = new Date().getTime();
-		var diff = n - self.lastConnected;
-		if (diff > self.config.giveup_interval){
-			//console.log('trying for too long - giving up');
-			self.emit('status', false, 'Disconnected');
-			self.stopPing();
+		// this timer is set up so that we can decide to just stop trying
+		// after a certain period.
+		if (self.giveupTimer) window.clearTimeout(self.giveupTimer);
+		self.giveupTimer = window.setTimeout(function(){ self.giveup(); }, self.config.giveup_interval);
 
-			// we mark this as 'connected' so that when we try and
-			// go online again, we say we're reconnecting.
-			self.everConnected = true;
-			return;
-		}
-
-		if (self.everConnected){
-			self.emit('status', false, 'Reconnecting...');
-			self.socket.connect();
-		}
+		// emit status change and then try to connect
+		self.emit('status', false, 'Reconnecting...');
+		self.socket.connect();
 	}
 
-	this.startPing = function(){
-		if (self.pingTimer) return;
-		self.pingTimer = window.setInterval(function(){ self.ping(); }, self.config.ping_interval);
+	this.giveup = function(){
+		window.clearTimeout(self.giveupTimer);
+		self.giveupTimer = null;
+		if (self.socket.connected) return;
+
+		self.emit('status', false, 'Disconnected');
 	}
 
-	this.stopPing = function(){
-		if (!self.pingTimer) return;
-		window.clearInterval(self.pingTimer);
-		self.pingTimer = null;
-	}
+
+	//
+	// ping is a simple interval - if we're connected, send
+	// a ping message. if note, do nothing
+	//
+
+	self.pingTimer = window.setInterval(function(){ self.ping(); }, self.config.ping_interval);
 
 	this.ping = function(){
-		if (!self.socket.connected){
-			self.reconnect();
-			return;
+		//if (!self.socket.connected){
+		//	self.reconnect();
+		//	return;
+		//}
+		if (self.socket.connected){
+			self.socket.send({msg: 'ping', t: new Date().getTime()});
 		}
-		self.socket.send({msg: 'ping', t: new Date().getTime()});
 	}
 
+
+
+	//
+	// toggle the client on and off
+	//
+
 	this.go_online = function(){
+		if (self.socket.connected) return;
 		self.online = true;
-		self.lastConnected = new Date().getTime();
-		this.startPing();
-		self.ping();
+		self.reconnect();
 	}
 
 	this.go_offline = function(){
@@ -152,7 +155,7 @@ function serverConnection(config){
 
 
 	// delay this call so that the caller can set up event handlers
-	window.setTimeout(function(){ self.firstconnect(); }, 0);
+	window.setTimeout(function(){ self.connect(); }, 0);
 }
 
 var con;
@@ -162,7 +165,7 @@ $(document).ready(function(){
 	con = new serverConnection({
 		host		: 'iamcal.com',
 		port		: 8080,
-		ping_interval	: 3000, // also the reconnect timer
+		ping_interval	: 3000,
 		giveup_interval	: 10000
 	});
 
