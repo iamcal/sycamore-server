@@ -125,7 +125,7 @@ function serverConnection(config){
 
 	//
 	// ping is a simple interval - if we're connected, send
-	// a ping message. if note, do nothing
+	// a ping message. if not, do nothing
 	//
 
 	self.pingTimer = window.setInterval(function(){ self.ping(); }, self.config.ping_interval);
