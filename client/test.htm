@@ -211,6 +211,13 @@ $(document).ready(function(){
 
 	con.on('message', function(msg){
 
+		switch (msg.msg){
+			case 'welcome': return handleWelcome(msg);
+			case 'joined': return handleJoined(msg);
+			case 'left': return handleLeft(msg);
+			case 'moved': return handleMoved(msg);
+		}
+
 		console.log('got a message!', msg);
 	});
 
@@ -218,7 +225,53 @@ $(document).ready(function(){
 
 		con.send({msg: 'some data'});
 	});
+
+	$('#playarea').click(function(e){
+		var x = e.layerX;
+		var y = e.layerY;
+		con.send({msg: 'move', x:x, y:y});
+	});
 });
+
+function handleWelcome(msg){
+	$('#onlinelistplayers').html('');
+	$('#playarea').html('');
+
+	for (var i in msg.players){
+		addPlayer(i, msg.players[i]);
+	}
+}
+
+function addPlayer(uid, p){
+
+console.log(p);
+
+	var txt = uid+": "+p.x+","+p.y;
+	if (p.self) txt += " (you)";
+	var d = $('<div>').text(txt);
+	d.attr('id', 'players-'+uid);
+	$('#onlinelistplayers').append(d);
+
+	var dude = $('<div>').addClass('dude');
+	dude.css({left: (p.x-7)+'px', top: (p.y-22)+'px'});
+	dude.attr('id', 'players-dudes-'+uid);
+	if (p.self) dude.css({backgroundColor: 'rgba(0,255,0,0.5)'});
+	$('#playarea').append(dude);
+}
+
+function handleJoined(msg){
+	addPlayer(msg.uid, msg.player);
+}
+
+function handleLeft(msg){
+	$('#players-'+msg.uid).remove();
+	$('#players-dudes-'+msg.uid).remove();
+}
+
+function handleMoved(msg){
+
+	$('#players-dudes-'+msg.uid).css({left: (msg.x-7)+'px', top: (msg.y-22)+'px'});
+}
 
 </script>
 <style>
@@ -271,6 +324,32 @@ body {
 #con.online { background-color: lime; }
 #con.offline { background-color: #999; }
 
+#onlinelist {
+	position: absolute;
+	left: 30px;
+	top: 100px;
+	border: 1px solid #666;
+	background-color: #f5f5f5;
+	padding: 1em;
+}
+
+#playarea {
+	position: absolute;
+	left: 400px;
+	top: 100px;
+	width: 400px;
+	height: 400px;
+	border: 1px solid #666;
+	background-color: #f5f5f5;
+}
+
+.dude {
+	position: absolute;
+	width: 15px;
+	height: 22px;
+	background-image: url(bunny.gif);
+}
+
 </style>
 
 <div id="statusbar">
@@ -278,4 +357,12 @@ body {
 		<div id="con"></div>
 		<span id="lag">Disconnected</span>
 	</div>
+</div>
+
+<div id="onlinelist">
+	<b>Players Online</b><br />
+	<div id="onlinelistplayers"></div>
+</div>
+
+<div id="playarea">
 </div>
