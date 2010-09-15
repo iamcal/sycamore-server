@@ -223,7 +223,7 @@ $(document).ready(function(){
 
 	con.on('connected', function(){
 
-		con.send({msg: 'some data'});
+		//con.send({msg: 'some data'});
 	});
 
 	$('#playarea').click(function(e){
@@ -243,8 +243,6 @@ function handleWelcome(msg){
 }
 
 function addPlayer(uid, p){
-
-console.log(p);
 
 	var txt = uid+": "+p.x+","+p.y;
 	if (p.self) txt += " (you)";
