@@ -173,6 +173,9 @@ var con;
 
 $(document).ready(function(){
 
+	init_tiles();
+	return;
+
 	con = new serverConnection({
 		host		: 'iamcal.com',
 		port		: 8080,
@@ -271,6 +274,153 @@ function handleMoved(msg){
 	$('#players-dudes-'+msg.uid).css({left: (msg.x-7)+'px', top: (msg.y-22)+'px'});
 }
 
+
+function tileset(src, sz){
+
+	var self = this;
+
+	this.img = new Image();
+	this.sz = sz;
+	this.ready = false;
+	this.onready = null;
+	this.w = 1;
+	this.h = 1;
+
+	this.img.onload = function(){
+		self.w = Math.floor(self.img.width / self.sz);
+		self.h = Math.floor(self.img.height / self.sz);
+		self.ready = true;
+		if (self.onready) self.onready();
+	};
+
+	this.img.src = src;
+
+	this.blt = function(ctx, tile_id, x, y){
+
+		var sx = tile_id % self.w;
+		var sy = Math.floor(tile_id / self.w);
+
+		ctx.drawImage(self.img, sx * self.sz, sy * self.sz, self.sz, self.sz, x, y, self.sz, self.sz);
+	};	
+}
+
+function gameMap(grid, tileset){
+
+	var self = this;
+
+	this.grid = grid;
+	this.tileset = tileset;
+
+
+	//
+	// find the size of the map in tiles
+	//
+
+	this.tw = 0;
+	this.th = grid.length;
+
+	for (var y=0; y<this.th; y++){
+		if (grid[y].length > this.tw) this.tw = grid[y].length;
+	}
+
+
+	//
+	// now we have the real size, so create the buffer
+	//
+
+	this.w = this.tw * tileset.sz;
+	this.h = this.th * tileset.sz;
+	this.buffer = document.createElement('canvas');
+	this.buffer.width = this.w;
+	this.buffer.height = this.h;
+
+
+	//
+	// paint the map onto the buffer
+	//
+
+	var ctx = this.buffer.getContext("2d");
+
+	for (var y=0; y<grid.length; y++){
+	for (var x=0; x<grid[y].length; x++){
+
+		tileset.blt(ctx, grid[y][x], x * tileset.sz, y * tileset.sz);
+	}
+	}
+}
+
+function tilesetPreview(tileset, cols, spacing){
+
+	var num = tileset.w * tileset.h;
+	var rows = Math.ceil(num / cols);
+
+	this.buffer = document.createElement('canvas');
+	this.buffer.width = cols * tileset.sz;
+	this.buffer.height = rows * tileset.sz;
+
+	var ctx = this.buffer.getContext("2d");
+
+	for (var i=0; i<num; i++){
+		var col = i % cols;
+		var row = Math.floor(i / cols);
+
+		tileset.blt(ctx, i, col * (tileset.sz + spacing), row * (tileset.sz + spacing));
+	}
+}
+
+
+var t;
+
+function init_tiles(){
+
+	var map_data = [
+		[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9],
+		[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9],
+		[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9],
+		[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9],
+		[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9],
+		[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 9],
+		[13,21,21,21,21],
+		[14,42,15,15,16],
+		[14,43,44,45,28],
+		[14,75,26,26,72]
+	];
+
+	t = new tileset('pink_big.png', 16);
+	t.onready = function(){
+
+		var map1 = new gameMap(map_data, t);
+		var ts1 = new tilesetPreview(t, 10, 2);
+
+
+		var ctx2 = document.getElementById('playarea2').getContext("2d");
+		ctx2.drawImage(map1.buffer, 40, 180);
+		ctx2.drawImage(ts1.buffer, 2, 2);
+	}
+
+
+
+	$('#playarea2').click(function(e){
+
+		var x;
+		var y;
+		if (e.pageX || e.pageY){
+			x = e.pageX;
+			y = e.pageY;
+		}else{
+			x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+			y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+		}
+
+		var offset = $(this).offset();
+
+		x -= offset.left;
+		y -= offset.top;
+
+		con.send({msg: 'move', x:x, y:y});
+	});
+}
+
 </script>
 <style>
 
@@ -341,6 +491,16 @@ body {
 	background-color: #f5f5f5;
 }
 
+#playarea2 {
+	position: absolute;
+	left: 820px;
+	top: 100px;
+	width: 400px;
+	height: 400px;
+	border: 1px solid #666;
+	background-color: #f5f5f5;
+}
+
 .dude {
 	position: absolute;
 	width: 15px;
@@ -364,3 +524,5 @@ body {
 
 <div id="playarea">
 </div>
+
+<canvas id="playarea2" width="400" height="400"></canvas>
