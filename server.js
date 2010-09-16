@@ -4,6 +4,7 @@ var fs = require('fs');
 var io = require('../socket.io-node/');
 var sys = require('sys');
 var httpProxy = require('http-proxy');
+var engine = require('./engine');
 
 
 //
@@ -26,17 +27,24 @@ server.listen(8080);
 
 
 //
+// the game engine does the real work - it recieves connections,
+// disconnections and messages. it just has to decide what to do
+// with them and maybe send some replies.
+//
+
+var engine = new engine.gameEngine();
+
+
+//
 // this is the socket.io server gubbins - it hijacks one path
-// for client<->server comm. in the near future, this will hook
-// into the actual game server instead of just echoing things.
+// for client<->server comm.
 //
 	
 var io = io.listen(server);
-		
-io.on('connection', function(client){
-	client.send({ msg: 'hello' });
 
-	client.broadcast({ announcement: client.sessionId + ' connected' });
+io.on('connection', function(client){
+
+	engine.addPlayer(client);
 
 	client.on('message', function(message){
 
@@ -45,15 +53,11 @@ io.on('connection', function(client){
 			return;
 		}
 
-		message.from = client.sessionId;
-
-		console.log('recv: '+sys.inspect(message));
-
-		client.send(message);
-		client.broadcast(message);
+		engine.playerMsg(client, message);
 	});
 
 	client.on('disconnect', function(){
-		client.broadcast({ announcement: client.sessionId + ' disconnected' });
+
+		engine.removePlayer(client);
 	});
 });
