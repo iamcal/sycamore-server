@@ -275,6 +275,27 @@ function handleMoved(msg){
 }
 
 
+function spritemap(src){
+
+	var self = this;
+
+	this.img = new Image();
+	this.ready = false;
+	this.onready = null;
+
+	this.img.onload = function(){
+		self.ready = true;
+		if (self.onready) self.onready();
+	};
+
+	this.img.src = src;
+
+	this.blt = function(ctx, sx, sy, sw, sh, dx, dy){
+
+		ctx.drawImage(self.img, sx, sy, sw, sh, dx, dy, dw, dh);
+	};
+}
+
 function tileset(src, sz){
 
 	var self = this;
@@ -370,34 +391,40 @@ function tilesetPreview(tileset, cols, spacing){
 
 
 var t;
+var map1;
+var ts1;
+var s1;
 
 function init_tiles(){
 
 	var map_data = [
-		[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9],
-		[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9],
-		[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9],
-		[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9],
-		[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9],
-		[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 9],
-		[13,21,21,21,21],
-		[14,42,15,15,16],
-		[14,43,44,45,28],
-		[14,75,26,26,72]
+		[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+		[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+		[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9,10, 9,11,13,13,13,13,13,13,13,13],
+		[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+		[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+		[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 2, 3, 3,13,13,13,13,13,13,13,13,13],
+		[13,21,21,21,21,21,21,21,21,21,21, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+		[14, 9,42,15,15,15,15,16, 9, 9, 9, 9,10, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+		[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
+		[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
 	];
 
 	t = new tileset('pink_big.png', 16);
+	s1 = new spritemap('bunny.gif');
+
+	//t = new tileset('pink.png', 8);
 	t.onready = function(){
 
-		var map1 = new gameMap(map_data, t);
-		var ts1 = new tilesetPreview(t, 10, 2);
+		map1 = new gameMap(map_data, t);
+		ts1 = new tilesetPreview(t, 10, 2);
 
+		//var ctx2 = document.getElementById('playarea2').getContext("2d");
+		//ctx2.drawImage(map1.buffer, 0, 0);
+		//ctx2.drawImage(ts1.buffer, 2, 202);
 
-		var ctx2 = document.getElementById('playarea2').getContext("2d");
-		ctx2.drawImage(map1.buffer, 40, 180);
-		ctx2.drawImage(ts1.buffer, 2, 2);
+		redraw_playarea();
 	}
-
 
 
 	$('#playarea2').click(function(e){
@@ -417,8 +444,106 @@ function init_tiles(){
 		x -= offset.left;
 		y -= offset.top;
 
-		con.send({msg: 'move', x:x, y:y});
+		x -= map_offset[0];
+		y -= map_offset[1];
+
+		map_click(x, y);
+		//con.send({msg: 'move', x:x, y:y});
 	});
+}
+
+var player_pos = [10,10];
+var map_offset = [0,0];
+
+function redraw_playarea(){
+
+	var canvas = document.getElementById('playarea2');
+	canvas.width = canvas.width;
+
+	map_offset = get_map_pos(map1, player_pos);
+
+	var ctx = canvas.getContext("2d");
+	ctx.drawImage(map1.buffer, map_offset[0], map_offset[1]);
+
+	ctx.drawImage(s1.img, map_offset[0]+player_pos[0]-7, map_offset[1]+player_pos[1]-22);
+}
+
+function get_map_pos(map, camera){
+
+	// first, position the map to put the camera position in the middle of the canvas
+	var px = 200 - camera[0];
+	var py = 200 - camera[1];
+
+	// then make sure we're within bounds
+	if (px > 0) px = 0;
+	if (py > 0) py = 0;
+	if (px < 0 - (map.w - 400)) px = 0 - (map.w - 400);
+	if (py < 0 - (map.h - 400)) py = 0 - (map.h - 400);
+
+	// check we don't need to just center it (when map is smaller than display canvas)
+	if (map.w < 400) px = 200 - Math.round(map.w / 2);
+	if (map.h < 400) py = 200 - Math.round(map.h / 2);
+
+	return [px, py];
+}
+
+function map_click(x, y){
+	if (x < 0) return;
+	if (y < 0) return;
+	if (x >= map1.w) return;
+	if (y >= map1.h) return;
+
+	move_vector(x, y);
+}
+
+var moveInterval;
+var moveIntervalRes = 50;
+var moveSpeed = 50; // pixels per second
+var moveVector = {
+	from: [0,0],
+	to: [0,0],
+	start: 0,
+	end: 0
+};
+
+function move_vector(x, y){
+
+	// stop the current vector
+	if (moveInterval){
+		window.clearInterval(moveInterval);
+		moveInterval = null;
+	}
+
+	// set up a new vector
+	moveVector.from = player_pos;
+	moveVector.to = [x,y];
+
+	var dx = Math.abs(player_pos[0] - x);
+	var dy = Math.abs(player_pos[1] - y);
+	var dist = Math.sqrt(dx * dx + dy * dy);
+	var time = (dist / moveSpeed) * 1000
+
+	moveVector.start = new Date().getTime();
+	moveVector.end = moveVector.start + time;
+
+	moveInterval = window.setInterval(moveAlong, moveIntervalRes);
+}
+
+function moveAlong(){
+
+	var now = new Date().getTime();
+	var frac = (now - moveVector.start) / (moveVector.end - moveVector.start);
+
+	if (frac >= 1){
+		player_pos = moveVector.to;
+		window.clearInterval(moveInterval);
+		moveInterval = null;
+	}else{
+		player_pos[0] = moveVector.from[0] + frac * (moveVector.to[0] - moveVector.from[0]);
+		player_pos[1] = moveVector.from[1] + frac * (moveVector.to[1] - moveVector.from[1]);
+	}
+
+	redraw_playarea();
 }
 
 </script>
