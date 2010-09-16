@@ -174,7 +174,7 @@ var con;
 $(document).ready(function(){
 
 	init_tiles();
-	return;
+	//return;
 
 	con = new serverConnection({
 		host		: 'iamcal.com',
@@ -214,14 +214,16 @@ $(document).ready(function(){
 
 	con.on('message', function(msg){
 
+		console.log('got a message!', msg);
+
 		switch (msg.msg){
 			case 'welcome': return handleWelcome(msg);
 			case 'joined': return handleJoined(msg);
 			case 'left': return handleLeft(msg);
-			case 'moved': return handleMoved(msg);
+			case 'move': return handleMoved(msg);
 		}
 
-		console.log('got a message!', msg);
+		console.log('unhandled message', msg);
 	});
 
 	con.on('connected', function(){
@@ -245,19 +247,18 @@ function handleWelcome(msg){
 	}
 }
 
+var players = {};
+
 function addPlayer(uid, p){
 
-	var txt = uid+": "+p.x+","+p.y;
+	var txt = uid;
 	if (p.self) txt += " (you)";
 	var d = $('<div>').text(txt);
 	d.attr('id', 'players-'+uid);
 	$('#onlinelistplayers').append(d);
 
-	var dude = $('<div>').addClass('dude');
-	dude.css({left: (p.x-7)+'px', top: (p.y-22)+'px'});
-	dude.attr('id', 'players-dudes-'+uid);
-	if (p.self) dude.css({backgroundColor: 'rgba(0,255,0,0.5)'});
-	$('#playarea').append(dude);
+
+	players[uid] = new player(uid, p.self, p.state);
 }
 
 function handleJoined(msg){
@@ -266,12 +267,13 @@ function handleJoined(msg){
 
 function handleLeft(msg){
 	$('#players-'+msg.uid).remove();
-	$('#players-dudes-'+msg.uid).remove();
+
+	delete players[msg.uid];
 }
 
 function handleMoved(msg){
 
-	$('#players-dudes-'+msg.uid).css({left: (msg.x-7)+'px', top: (msg.y-22)+'px'});
+	players[msg.uid].update_state(msg.state);
 }
 
 
@@ -471,7 +473,8 @@ function init_tiles(){
 		//ctx2.drawImage(map1.buffer, 0, 0);
 		//ctx2.drawImage(ts1.buffer, 2, 202);
 
-		redraw_playarea();
+		window.setInterval(redraw_playarea, 50);
+		//redraw_playarea();
 	}
 
 
@@ -495,8 +498,8 @@ function init_tiles(){
 		x -= map_offset[0];
 		y -= map_offset[1];
 
-		map_click(x, y);
-		//con.send({msg: 'move', x:x, y:y});
+		//map_click(x, y);
+		con.send({msg: 'move', x:x, y:y});
 	});
 }
 
@@ -510,13 +513,31 @@ function redraw_playarea(){
 	canvas.width = canvas_size[0];
 	canvas.height = canvas_size[1];
 
-	map_offset = get_map_pos(map1, player_pos);
-
 	var ctx = canvas.getContext("2d");
+	ctx.clearRect(0, 0, canvas_size[0], canvas_size[1]);
+
+	// find the position of our player
+	var player_pos = [0, 0];
+	for (var i in players){
+		if (players[i].is_self){
+			player_pos = players[i].get_pos();
+		}
+	}
+
+	// position and draw the map
+	map_offset = get_map_pos(map1, player_pos);
 	ctx.drawImage(map1.buffer, map_offset[0], map_offset[1]);
 
+	// draw other players
+	for (var i in players){
+		if (!players[i].is_self){
+			var pos = players[i].get_pos();
+			s1.blt(ctx, 15, 0, 15, 22, map_offset[0]+pos[0]-7, map_offset[1]+pos[1]-22);
+		}
+	}
+
+	// draw our player last
 	s1.blt(ctx, 0, 0, 15, 22, map_offset[0]+player_pos[0]-7, map_offset[1]+player_pos[1]-22);
-	//ctx.drawImage(s1.img, );
 }
 
 function get_map_pos(map, camera){
@@ -556,6 +577,46 @@ var moveVector = {
 	start: 0,
 	end: 0
 };
+
+function player(uid, is_self, state){
+
+	var self = this;
+
+	this.uid = uid;
+	this.is_self = is_self;
+	this.state = {};
+
+	this.update_state = function(state){
+		self.state = state;
+
+		if (self.state.v){
+			state.v.start = new Date().getTime();
+			//self.state.x = state.v.to[0];
+			//self.state.y = state.v.to[1];
+		}
+	};
+
+	this.get_pos = function(){
+
+		if (self.state.v){
+			var now = new Date().getTime();
+			var frac = (now - self.state.v.start) / self.state.v.len;
+
+			if (frac >= 1){
+				self.state.x = self.state.v.to[0];
+				self.state.y = self.state.v.to[1];
+				delete self.state.v;
+			}else{
+				self.state.x = Math.round(self.state.v.from[0] + frac * (self.state.v.to[0] - self.state.v.from[0]));
+				self.state.y = Math.round(self.state.v.from[1] + frac * (self.state.v.to[1] - self.state.v.from[1]));
+			}
+		}
+
+		return [self.state.x, self.state.y];
+	};
+
+	this.update_state(state);
+}
 
 function move_vector(x, y){
 
