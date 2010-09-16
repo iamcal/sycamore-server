@@ -498,7 +498,13 @@ function init_tiles(){
 		x -= map_offset[0];
 		y -= map_offset[1];
 
-		//map_click(x, y);
+
+		// ignore clicks outside the map
+		if (x < 0) return;
+		if (y < 0) return;
+		if (x >= map1.w) return;
+		if (y >= map1.h) return;
+
 		con.send({msg: 'move', x:x, y:y});
 	});
 }
@@ -559,25 +565,6 @@ function get_map_pos(map, camera){
 	return [px, py];
 }
 
-function map_click(x, y){
-	if (x < 0) return;
-	if (y < 0) return;
-	if (x >= map1.w) return;
-	if (y >= map1.h) return;
-
-	move_vector(x, y);
-}
-
-var moveInterval;
-var moveIntervalRes = 50; // ms between tween steps
-var moveSpeed = 30; // pixels per second
-var moveVector = {
-	from: [0,0],
-	to: [0,0],
-	start: 0,
-	end: 0
-};
-
 function player(uid, is_self, state){
 
 	var self = this;
@@ -616,46 +603,6 @@ function player(uid, is_self, state){
 	};
 
 	this.update_state(state);
-}
-
-function move_vector(x, y){
-
-	// stop the current vector
-	if (moveInterval){
-		window.clearInterval(moveInterval);
-		moveInterval = null;
-	}
-
-	// set up a new vector
-	moveVector.from = player_pos;
-	moveVector.to = [x,y];
-
-	var dx = Math.abs(player_pos[0] - x);
-	var dy = Math.abs(player_pos[1] - y);
-	var dist = Math.sqrt(dx * dx + dy * dy);
-	var time = (dist / moveSpeed) * 1000
-
-	moveVector.start = new Date().getTime();
-	moveVector.end = moveVector.start + time;
-
-	moveInterval = window.setInterval(moveAlong, moveIntervalRes);
-}
-
-function moveAlong(){
-
-	var now = new Date().getTime();
-	var frac = (now - moveVector.start) / (moveVector.end - moveVector.start);
-
-	if (frac >= 1){
-		player_pos = moveVector.to;
-		window.clearInterval(moveInterval);
-		moveInterval = null;
-	}else{
-		player_pos[0] = moveVector.from[0] + frac * (moveVector.to[0] - moveVector.from[0]);
-		player_pos[1] = moveVector.from[1] + frac * (moveVector.to[1] - moveVector.from[1]);
-	}
-
-	redraw_playarea();
 }
 
 </script>
