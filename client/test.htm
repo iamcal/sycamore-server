@@ -292,7 +292,7 @@ function spritemap(src){
 
 	this.blt = function(ctx, sx, sy, sw, sh, dx, dy){
 
-		ctx.drawImage(self.img, sx, sy, sw, sh, dx, dy, dw, dh);
+		ctx.drawImage(self.img, sx, sy, sw, sh, dx, dy, sw, sh);
 	};
 }
 
@@ -389,32 +389,80 @@ function tilesetPreview(tileset, cols, spacing){
 	}
 }
 
+//
+// waitlist is a simple class that helps you wait for multiple events to complete.
+// just hook all of the events you want to wait for up to handlers and onready will
+// be fired once all of the sub-events fire. e.g.
+//
+// var w = new waitlist();
+// map1.onready = w.add_wait();
+// map2.onready = w.add_wait();
+// sprites2.onready = w.add_wait();
+// w.onready = function(){ ...only fires once all objects are ready... }
+//
+
+function waitlist(){
+
+	var self = this;
+
+	this.waiting = {};
+	this.uid = 1;
+	this.fired = false;
+	this.onready = null;
+
+	this.add_wait = function(){
+		var u = self.uid++;
+		self.waiting[u] = 0;
+		return function(){
+			self.waiting[u] = 1;
+			self.check();
+		};
+	}
+
+	this.check = function(){
+
+		if (self.fired) return;
+
+		for (var i in self.waiting){
+			if (!self.waiting[i]) return;
+		}
+
+		self.fired = true;
+		if (self.onready) self.onready();
+	}
+}
+
 
 var t;
 var map1;
 var ts1;
 var s1;
 
+var map_data = [
+	[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9,10, 9,11,13,13,13,13,13,13,13,13],
+	[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 2, 3, 3,13,13,13,13,13,13,13,13,13],
+	[13,21,21,21,21,21,21,21,21,21,21, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+	[14, 9,42,15,15,15,15,16, 9, 9, 9, 9,10, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+	[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
+	[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+];
+
 function init_tiles(){
 
-	var map_data = [
-		[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-		[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-		[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9,10, 9,11,13,13,13,13,13,13,13,13],
-		[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-		[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-		[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 2, 3, 3,13,13,13,13,13,13,13,13,13],
-		[13,21,21,21,21,21,21,21,21,21,21, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
-		[14, 9,42,15,15,15,15,16, 9, 9, 9, 9,10, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
-		[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
-		[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
-	];
+	var wait = new waitlist();
 
 	t = new tileset('pink_big.png', 16);
-	s1 = new spritemap('bunny.gif');
-
 	//t = new tileset('pink.png', 8);
-	t.onready = function(){
+	s1 = new spritemap('bunnies.gif');
+
+	t.onready = wait.add_wait();
+	s1.onready = wait.add_wait();
+
+	wait.onready = function(){
 
 		map1 = new gameMap(map_data, t);
 		ts1 = new tilesetPreview(t, 10, 2);
@@ -452,37 +500,40 @@ function init_tiles(){
 	});
 }
 
+var canvas_size = [300, 300];
 var player_pos = [10,10];
 var map_offset = [0,0];
 
 function redraw_playarea(){
 
 	var canvas = document.getElementById('playarea2');
-	canvas.width = canvas.width;
+	canvas.width = canvas_size[0];
+	canvas.height = canvas_size[1];
 
 	map_offset = get_map_pos(map1, player_pos);
 
 	var ctx = canvas.getContext("2d");
 	ctx.drawImage(map1.buffer, map_offset[0], map_offset[1]);
 
-	ctx.drawImage(s1.img, map_offset[0]+player_pos[0]-7, map_offset[1]+player_pos[1]-22);
+	s1.blt(ctx, 0, 0, 15, 22, map_offset[0]+player_pos[0]-7, map_offset[1]+player_pos[1]-22);
+	//ctx.drawImage(s1.img, );
 }
 
 function get_map_pos(map, camera){
 
 	// first, position the map to put the camera position in the middle of the canvas
-	var px = 200 - camera[0];
-	var py = 200 - camera[1];
+	var px = (canvas_size[0] >> 1) - camera[0];
+	var py = (canvas_size[1] >> 1) - camera[1];
 
 	// then make sure we're within bounds
 	if (px > 0) px = 0;
 	if (py > 0) py = 0;
-	if (px < 0 - (map.w - 400)) px = 0 - (map.w - 400);
-	if (py < 0 - (map.h - 400)) py = 0 - (map.h - 400);
+	if (px < 0 - (map.w - canvas_size[0])) px = 0 - (map.w - canvas_size[0]);
+	if (py < 0 - (map.h - canvas_size[1])) py = 0 - (map.h - canvas_size[1]);
 
 	// check we don't need to just center it (when map is smaller than display canvas)
-	if (map.w < 400) px = 200 - Math.round(map.w / 2);
-	if (map.h < 400) py = 200 - Math.round(map.h / 2);
+	if (map.w < canvas_size[0]) px = (canvas_size[0] >> 1) - Math.round(map.w / 2);
+	if (map.h < canvas_size[1]) py = (canvas_size[1] >> 1) - Math.round(map.h / 2);
 
 	return [px, py];
 }
@@ -497,8 +548,8 @@ function map_click(x, y){
 }
 
 var moveInterval;
-var moveIntervalRes = 50;
-var moveSpeed = 50; // pixels per second
+var moveIntervalRes = 50; // ms between tween steps
+var moveSpeed = 30; // pixels per second
 var moveVector = {
 	from: [0,0],
 	to: [0,0],
@@ -620,8 +671,6 @@ body {
 	position: absolute;
 	left: 820px;
 	top: 100px;
-	width: 400px;
-	height: 400px;
 	border: 1px solid #666;
 	background-color: #f5f5f5;
 }
@@ -650,4 +699,4 @@ body {
 <div id="playarea">
 </div>
 
-<canvas id="playarea2" width="400" height="400"></canvas>
+<canvas id="playarea2"></canvas>
