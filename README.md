@@ -11,5 +11,7 @@ Setup
 -----
 
 Copy `config.example.js` to `config.js`. Edit values in `config.js` to reflect your local setup. Run `node server.js`.
+
 Do the same thing for the config files in `client/js/`.
+
 Play.
