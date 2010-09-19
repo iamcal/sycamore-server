@@ -5,6 +5,7 @@ var io = require('../socket.io-node/');
 var sys = require('sys');
 var httpProxy = require('http-proxy');
 var engine = require('./engine');
+var config = require('./config').config;
 
 
 //
@@ -21,9 +22,9 @@ var engine = require('./engine');
 var server = http.createServer(function(req, res){
 
 	var proxy = new httpProxy.HttpProxy(req, res);
-	proxy.proxyRequest(80, 'localhost', req, res);
+	proxy.proxyRequest(config.proxy_port, config.proxy_address, req, res);
 });
-server.listen(8080);
+server.listen(config.listen_port);
 
 
 //
