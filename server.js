@@ -27,7 +27,7 @@ server.listen(8080);
 
 
 //
-// the game engine does the real work - it recieves connections,
+// the game engine does the real work - it receives connections,
 // disconnections and messages. it just has to decide what to do
 // with them and maybe send some replies.
 //
