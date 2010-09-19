@@ -17,7 +17,7 @@ exports.gameEngine = function(){
 		var p = new player(client);
 		self.players[p.uid] = p;
 
-		// tell all the other players about it
+		// tell all the OTHER players about it
 		client.broadcast({msg: 'joined', uid: p.uid, player: { state: p.get_state()}});
 
 		// send a list of connected players
@@ -42,7 +42,7 @@ exports.gameEngine = function(){
 		var uid = client.sessionId;
 		delete self.players[uid];
 
-		// tell all the other players about it
+		// tell all the OTHER players about it
 		client.broadcast({msg: 'left', uid: uid});
 	};
 
@@ -129,9 +129,8 @@ function player(client){
 		};
 
 		var state = self.get_state();
-		client.send({msg: 'move', uid: self.uid, state: state});
-		client.broadcast({msg: 'move', uid: self.uid, state: state});
-		// broadcast this too!
+		client.send({msg: 'move', uid: self.uid, state: state}); // tell ourselves about it
+		client.broadcast({msg: 'move', uid: self.uid, state: state}); // tell everyone else about it
 	};
 	
 	

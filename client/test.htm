@@ -3,8 +3,19 @@
 <script type="text/javascript" src="socket.io.js"></script>
 <script type="text/javascript">
 
-io.setPath('./');
+//
+// things you will want to change
+//
 
+var g_server_host = 'iamcal.com';
+var g_server_port = 8080;
+
+
+//
+// server connection and message/event handling logic
+//
+
+io.setPath('./');
 
 function serverConnection(config){
 
@@ -24,7 +35,7 @@ function serverConnection(config){
 
 
 	//
-	// set up the socket object
+	// set up event handlers on the socket object
 	//
 
 	this.socket.on('connect', function(){
@@ -169,6 +180,12 @@ function serverConnection(config){
 	window.setTimeout(function(){ self.connect(); }, 0);
 }
 
+///////////////////////////////////////////////
+
+//
+// let us begin
+//
+
 var con;
 
 $(document).ready(function(){
@@ -176,12 +193,22 @@ $(document).ready(function(){
 	init_tiles();
 	//return;
 
+
+	//
+	// connect to the game server
+	//
+
 	con = new serverConnection({
-		host		: 'iamcal.com',
-		port		: 8080,
+		host		: g_server_host,
+		port		: g_server_port,
 		ping_interval	: 3000,
 		giveup_interval	: 10000
 	});
+	
+	
+	//
+	// these are our connection state handlers
+	//
 
 	con.on('state', function(state, lag){
 		switch (state){
@@ -212,6 +239,10 @@ $(document).ready(function(){
 	});
 
 
+	//
+	// these are our message handlers
+	//
+
 	con.on('message', function(msg){
 
 		console.log('got a message!', msg);
@@ -231,6 +262,13 @@ $(document).ready(function(){
 		//con.send({msg: 'some data'});
 	});
 });
+
+///////////////////////////////////////////////
+
+//
+// we have connected. populate player list
+// this includes us!
+//
 
 function handleWelcome(msg){
 	$('#onlinelistplayers').html('');
@@ -255,9 +293,17 @@ function addPlayer(uid, p){
 	players[uid] = new player(uid, p.self, p.state);
 }
 
+//
+// another player joined
+//
+
 function handleJoined(msg){
 	addPlayer(msg.uid, msg.player);
 }
+
+//
+// another player left
+//
 
 function handleLeft(msg){
 	$('#players-'+msg.uid).remove();
@@ -265,11 +311,24 @@ function handleLeft(msg){
 	delete players[msg.uid];
 }
 
+//
+// a player moved. it could be us!
+//
+
 function handleMoved(msg){
 
 	players[msg.uid].update_state(msg.state);
 }
 
+///////////////////////////////////////////////
+
+//
+// begin drawing functions
+//
+
+//
+// load an spritesheet image and prep for drawing
+//
 
 function spritemap(src){
 
@@ -291,6 +350,11 @@ function spritemap(src){
 		ctx.drawImage(self.img, sx, sy, sw, sh, dx, dy, sw, sh);
 	};
 }
+
+
+//
+// load a tileset image and prep for drawing
+//
 
 function tileset(src, sz){
 
@@ -320,6 +384,11 @@ function tileset(src, sz){
 		ctx.drawImage(self.img, sx * self.sz, sy * self.sz, self.sz, self.sz, x, y, self.sz, self.sz);
 	};	
 }
+
+
+//
+// a game map takes a grid and a tileset, creates a buffer canvas and draws the entire thing onto it
+//
 
 function gameMap(grid, tileset){
 
@@ -359,12 +428,18 @@ function gameMap(grid, tileset){
 	var ctx = this.buffer.getContext("2d");
 
 	for (var y=0; y<grid.length; y++){
-	for (var x=0; x<grid[y].length; x++){
+		for (var x=0; x<grid[y].length; x++){
 
-		tileset.blt(ctx, grid[y][x], x * tileset.sz, y * tileset.sz);
-	}
+			tileset.blt(ctx, grid[y][x], x * tileset.sz, y * tileset.sz);
+		}
 	}
 }
+
+
+//
+// takes a tileset and draws the whole thing on a buffer canvas
+// useful for finding the one you want
+//
 
 function tilesetPreview(tileset, cols, spacing){
 
@@ -384,6 +459,9 @@ function tilesetPreview(tileset, cols, spacing){
 		tileset.blt(ctx, i, col * (tileset.sz + spacing), row * (tileset.sz + spacing));
 	}
 }
+
+
+///////////////////////////////////////////////
 
 //
 // waitlist is a simple class that helps you wait for multiple events to complete.
@@ -429,10 +507,17 @@ function waitlist(){
 }
 
 
-var t;
-var map1;
-var ts1;
-var s1;
+///////////////////////////////////////////////
+
+var t; // the map tileset
+var map1; // the map!
+var ts1; // a preview of all the tiles in the map tileset
+var s1; // spritemap for the players
+
+
+//
+// here be the map grid. entries are the tileset index
+//
 
 var map_data = [
 	[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
@@ -446,6 +531,10 @@ var map_data = [
 	[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
 	[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
 ];
+
+//
+// load the tileset, the map data, and the player sprite. prepare for player interaction
+//
 
 function init_tiles(){
 
@@ -463,9 +552,14 @@ function init_tiles(){
 		map1 = new gameMap(map_data, t);
 		ts1 = new tilesetPreview(t, 10, 2);
 
-		window.setInterval(redraw_playarea, 50);
+		window.setInterval(redraw_playarea, 50); // repaint the playarea canvas every 50ms
 	}
 
+
+	//
+	// handle clicks on the gameplay canvas
+	// currently these are just sent to the game server as moves
+	//
 
 	$('#playarea2').click(function(e){
 
@@ -497,6 +591,12 @@ function init_tiles(){
 		con.send({msg: 'move', x:x, y:y});
 	});
 }
+
+///////////////////////////////////////////////
+
+//
+// Begin the play area, which is the canvas that the player actually sees and interacts with
+//
 
 var canvas_size = [300, 300];
 var player_pos = [10,10];
@@ -554,6 +654,11 @@ function get_map_pos(map, camera){
 	return [px, py];
 }
 
+
+//
+// a player object. handles updating state client-side
+//
+
 function player(uid, is_self, state){
 
 	var self = this;
@@ -561,6 +666,10 @@ function player(uid, is_self, state){
 	this.uid = uid;
 	this.is_self = is_self;
 	this.state = {};
+	
+	//
+	// update the player's state, processing any included movement vectors
+	//
 
 	this.update_state = function(state){
 		self.state = state;
@@ -572,17 +681,24 @@ function player(uid, is_self, state){
 		}
 	};
 
+	//
+	// get the current position of this player, taking into account current movement vectors
+	//
+
 	this.get_pos = function(){
 
+		// if they are moving, figure out where they actually are now
 		if (self.state.v){
 			var now = new Date().getTime();
 			var frac = (now - self.state.v.start) / self.state.v.len;
 
+			// done moving?
 			if (frac >= 1){
 				self.state.x = self.state.v.to[0];
 				self.state.y = self.state.v.to[1];
 				delete self.state.v;
 			}else{
+				// interpolate!
 				self.state.x = Math.round(self.state.v.from[0] + frac * (self.state.v.to[0] - self.state.v.from[0]));
 				self.state.y = Math.round(self.state.v.from[1] + frac * (self.state.v.to[1] - self.state.v.from[1]));
 			}
