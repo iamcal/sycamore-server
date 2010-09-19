@@ -1,15 +1,8 @@
 <script type="text/javascript" src="json2.js"></script>
 <script type="text/javascript" src="jquery.min.js"></script>
 <script type="text/javascript" src="socket.io.js"></script>
+<script type="text/javascript" src="js/config.js"></script>
 <script type="text/javascript">
-
-//
-// things you will want to change
-//
-
-var g_server_host = 'iamcal.com';
-var g_server_port = 8080;
-
 
 //
 // server connection and message/event handling logic
@@ -199,8 +192,8 @@ $(document).ready(function(){
 	//
 
 	con = new serverConnection({
-		host		: g_server_host,
-		port		: g_server_port,
+		host		: g_config.server_host,
+		port		: g_config.server_port,
 		ping_interval	: 3000,
 		giveup_interval	: 10000
 	});
