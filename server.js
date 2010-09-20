@@ -1,11 +1,12 @@
-var http = require('http');
-var url = require('url');
-var fs = require('fs');
-var io = require('../socket.io-node/');
-var sys = require('sys');
-var httpProxy = require('http-proxy');
-var engine = require('./engine');
-var config = require('./config').config;
+var http = require('http'),
+	url = require('url'),
+	fs = require('fs'),
+	io = require('../socket.io-node/'),
+	sys = require('sys'),
+	httpProxy = require('http-proxy');
+
+var config = require('./config').config,
+	engine = require('./lib/engine');
 
 
 //
