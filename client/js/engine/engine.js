@@ -1,6 +1,14 @@
 // Here we define some globals and then load the rest of the engine
 // This may be retarded
 
+// Safety first
+if (!("console" in window)){
+	window.console = {
+		log: function(){}
+	};
+}
+
+// Inject a script tag into the DOM so it will be loaded
 function loadScript(script_src){
 	var script = document.createElement('script');
 	script.src = script_src;
@@ -13,6 +21,7 @@ var map1; // the map!
 var ts1; // a preview of all the tiles in the map tileset
 var s1; // spritemap for the players
 
+// Our scripts to load
 var scripts = [
 	'events',
 	'graphics',
@@ -23,6 +32,7 @@ var scripts = [
 	'net'
 ];
 
+// Track when things are loaded and then start the engine after everything comes in
 var scripts_loaded = [];
 
 function scriptLoaded(name){
@@ -38,10 +48,6 @@ function scriptLoaded(name){
 	}
 }
 
-loadScript('/js/engine/events.js');
-loadScript('/js/engine/graphics.js');
-loadScript('/js/engine/entity.js');
-loadScript('/js/engine/input.js');
-loadScript('/js/engine/player.js');
-loadScript('/js/engine/map.js');
-loadScript('/js/engine/net.js');
+for (var i in scripts){
+	loadScript('/js/engine/'+scripts[i]+'.js');
+}
