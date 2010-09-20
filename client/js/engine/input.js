@@ -1,0 +1,1 @@
+scriptLoaded('input');
