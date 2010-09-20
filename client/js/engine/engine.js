@@ -32,7 +32,9 @@ function scriptLoaded(name){
 	if (scripts_loaded.length == scripts.length){
 		console.log('ENGINE LOAD COMPLETE');
 		// All done!
-		engine_start();
+		$(document).ready(function(){
+			engine_start();
+		});
 	}
 }
 
