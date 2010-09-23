@@ -1,1 +1,0 @@
-scriptLoaded('entity');
