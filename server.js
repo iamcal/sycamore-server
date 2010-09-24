@@ -46,7 +46,7 @@ var io = io.listen(server);
 
 io.on('connection', function(client){
 
-	engine.addPlayer(client);
+	engine.addSession(client);
 
 	client.on('message', function(message){
 
@@ -55,11 +55,11 @@ io.on('connection', function(client){
 			return;
 		}
 
-		engine.playerMsg(client, message);
+		engine.clientMsg(client, message);
 	});
 
 	client.on('disconnect', function(){
 
-		engine.removePlayer(client);
+		engine.removeSession(client);
 	});
 });
