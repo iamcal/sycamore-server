@@ -479,8 +479,8 @@ function tilesetPreview(tileset, cols, spacing){
 	var rows = Math.ceil(num / cols);
 
 	this.buffer = document.createElement('canvas');
-	this.buffer.width = cols * tileset.sz;
-	this.buffer.height = rows * tileset.sz;
+	this.buffer.width = (cols * (tileset.sz + spacing)) - spacing;
+	this.buffer.height = (rows * (tileset.sz + spacing)) - spacing;
 
 	var ctx = this.buffer.getContext("2d");
 
@@ -582,7 +582,9 @@ function init_tiles(){
 	wait.onready = function(){
 
 		map1 = new gameMap(map_data, t);
-		ts1 = new tilesetPreview(t, 10, 2);
+		ts1 = new tilesetPreview(t, 11, 2);
+
+		draw_palette();
 
 		window.setInterval(redraw_playarea, 50); // repaint the playarea canvas every 50ms
 	}
@@ -686,6 +688,21 @@ function get_map_pos(map, camera){
 	if (map.h < canvas_size[1]) py = (canvas_size[1] >> 1) - Math.round(map.h / 2);
 
 	return [px, py];
+}
+
+function draw_palette(){
+
+	var p_w = 400;
+	var p_h = 200;
+
+	var pal = document.getElementById('tilepalette');
+	pal.width = p_w;
+	pal.height = p_h;
+
+	var ctx = pal.getContext("2d");
+	ctx.clearRect(0, 0, p_w, p_h);
+
+	ctx.drawImage(ts1.buffer, 5, 5);
 }
 
 
@@ -812,6 +829,14 @@ body {
 	background-color: #f5f5f5;
 }
 
+#tilepalette {
+	position: absolute;
+	left: 720px;
+	top: 100px;
+	border: 1px solid #666;
+	background-color: #f5f5f5;
+}
+
 .dude {
 	position: absolute;
 	width: 15px;
@@ -834,3 +859,4 @@ body {
 </div>
 
 <canvas id="playarea2"></canvas>
+<canvas id="tilepalette"></canvas>
