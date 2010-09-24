@@ -1,7 +1,7 @@
-<script type="text/javascript" src="/js/json2.js"></script>
-<script type="text/javascript" src="/js/jquery.min.js"></script>
-<script type="text/javascript" src="/js/socket.io.js"></script>
-<script type="text/javascript" src="/js/config.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/socket.io.js"></script>
+<script type="text/javascript" src="js/config.js"></script>
 <script type="text/javascript">
 
 //
@@ -32,6 +32,12 @@ function serverConnection(config){
 	//
 
 	this.socket.on('connect', function(){
+
+		// did we just reconnect after trying to go offline?
+		if (!self.online && self.socket.connected){
+			self.socket.disconnect();
+			return;
+		}
 
 		self.lastConnected = new Date().getTime();
 
@@ -67,7 +73,11 @@ function serverConnection(config){
 			return;
 		}
 
-		self.emit('message', data);
+		if (self.online){
+			self.emit('message', data);
+		}else{
+			console.log("ignoring message since we're offline");
+		}
 	});
 
 
@@ -245,6 +255,7 @@ $(document).ready(function(){
 			case 'joined': return handleJoined(msg);
 			case 'left': return handleLeft(msg);
 			case 'move': return handleMoved(msg);
+			case 'disconnect': return handleDisconnect(msg);
 		}
 
 		console.log('unhandled message', msg);
@@ -252,7 +263,12 @@ $(document).ready(function(){
 
 	con.on('connected', function(){
 
-		//con.send({msg: 'some data'});
+		con.send({msg: 'login', player_id: 1});
+	});
+
+	con.on('disconnected', function(){
+
+		wipeStatus();
 	});
 });
 
@@ -263,9 +279,13 @@ $(document).ready(function(){
 // this includes us!
 //
 
-function handleWelcome(msg){
+function wipeStatus(){
 	$('#onlinelistplayers').html('');
-	$('#playarea').html('');
+}
+
+function handleWelcome(msg){
+
+	wipeStatus();
 
 	for (var i in msg.players){
 		addPlayer(i, msg.players[i]);
@@ -312,6 +332,19 @@ function handleMoved(msg){
 
 	players[msg.uid].update_state(msg.state);
 }
+
+
+//
+// we've been asked to disconnect
+//
+
+function handleDisconnect(msg){
+
+	con.go_offline();
+
+	alert("Forced disconnect: "+msg.reason);
+}
+
 
 ///////////////////////////////////////////////
 
