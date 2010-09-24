@@ -268,6 +268,7 @@ $(document).ready(function(){
 
 	con.on('disconnected', function(){
 
+		render_game = false;
 		wipeStatus();
 	});
 });
@@ -278,6 +279,8 @@ $(document).ready(function(){
 // we have connected. populate player list
 // this includes us!
 //
+
+var render_game = false;
 
 function wipeStatus(){
 	$('#onlinelistplayers').html('');
@@ -290,6 +293,8 @@ function handleWelcome(msg){
 	for (var i in msg.players){
 		addPlayer(i, msg.players[i]);
 	}
+
+	render_game = true;
 }
 
 var players = {};
@@ -340,6 +345,7 @@ function handleMoved(msg){
 
 function handleDisconnect(msg){
 
+	render_game = false;
 	con.go_offline();
 
 	alert("Forced disconnect: "+msg.reason);
@@ -636,6 +642,8 @@ function redraw_playarea(){
 
 	var ctx = canvas.getContext("2d");
 	ctx.clearRect(0, 0, canvas_size[0], canvas_size[1]);
+
+	if (!render_game) return;
 
 	// find the position of our player
 	var player_pos = [0, 0];
