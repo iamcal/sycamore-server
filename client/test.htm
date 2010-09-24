@@ -475,20 +475,41 @@ function gameMap(grid, tileset){
 
 function tilesetPreview(tileset, cols, spacing){
 
-	var num = tileset.w * tileset.h;
-	var rows = Math.ceil(num / cols);
+	var self = this;
+
+	this.num = tileset.w * tileset.h;
+	this.spacing = spacing;
+	this.cols = cols;
+	this.rows = Math.ceil(this.num / this.cols);
 
 	this.buffer = document.createElement('canvas');
-	this.buffer.width = (cols * (tileset.sz + spacing)) - spacing;
-	this.buffer.height = (rows * (tileset.sz + spacing)) - spacing;
+	this.buffer.width = (this.cols * (tileset.sz + spacing)) - spacing;
+	this.buffer.height = (this.rows * (tileset.sz + spacing)) - spacing;
 
 	var ctx = this.buffer.getContext("2d");
 
-	for (var i=0; i<num; i++){
-		var col = i % cols;
-		var row = Math.floor(i / cols);
+	for (var i=0; i<this.num; i++){
+		var col = i % this.cols;
+		var row = Math.floor(i / this.cols);
 
 		tileset.blt(ctx, i, col * (tileset.sz + spacing), row * (tileset.sz + spacing));
+	}
+
+	this.drawSelected = function(ctx, x, y, sel_idx){
+
+		ctx.drawImage(self.buffer, x, y);
+
+		if (sel_idx >= 0){
+			var col = sel_idx % this.cols;
+			var row = Math.floor(sel_idx / this.cols);
+
+			var px = x + (col * (tileset.sz + spacing));
+			var py = y + (row * (tileset.sz + spacing));
+
+			ctx.strokeStyle = '#f00';
+			ctx.lineWidth = 2;
+			ctx.strokeRect(px, py, tileset.sz, tileset.sz);
+		}
 	}
 }
 
@@ -545,6 +566,7 @@ var t; // the map tileset
 var map1; // the map!
 var ts1; // a preview of all the tiles in the map tileset
 var s1; // spritemap for the players
+var tile_sel = 0;
 
 
 //
@@ -597,20 +619,8 @@ function init_tiles(){
 
 	$('#playarea2').click(function(e){
 
-		var x;
-		var y;
-		if (e.pageX || e.pageY){
-			x = e.pageX;
-			y = e.pageY;
-		}else{
-			x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-			y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-		}
-
-		var offset = $(this).offset();
-
-		x -= offset.left;
-		y -= offset.top;
+		var x = e.pageX - this.offsetLeft;
+		var y = e.pageY - this.offsetTop;
 
 		x -= map_offset[0];
 		y -= map_offset[1];
@@ -624,6 +634,28 @@ function init_tiles(){
 
 		con.send({msg: 'move', x:x, y:y});
 	});
+
+	$('#tilepalette').click(function(e){
+
+		var x = e.pageX - this.offsetLeft;
+		var y = e.pageY - this.offsetTop;
+
+		// find the tile we clicked on
+		var tile_x = Math.floor((x - 5) / (t.sz + ts1.spacing));
+		var tile_y = Math.floor((y - 5) / (t.sz + ts1.spacing));
+
+		// if we clicked off the right edge, ignore
+		if (tile_x >= ts1.cols) return;
+
+		// check we didn't go off the bottom
+		var tile_id = tile_x + (tile_y * ts1.cols);
+		if (tile_id >= ts1.num) return;
+
+		// select and redraw
+		tile_sel = tile_id;
+		draw_palette();
+	});
+
 }
 
 ///////////////////////////////////////////////
@@ -702,7 +734,7 @@ function draw_palette(){
 	var ctx = pal.getContext("2d");
 	ctx.clearRect(0, 0, p_w, p_h);
 
-	ctx.drawImage(ts1.buffer, 5, 5);
+	ts1.drawSelected(ctx, 5, 5, tile_sel);
 }
 
 
