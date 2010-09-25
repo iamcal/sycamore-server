@@ -194,6 +194,7 @@ var con;
 $(document).ready(function(){
 
 	init_tiles();
+	update_mode();
 	//return;
 
 
@@ -274,6 +275,15 @@ $(document).ready(function(){
 });
 
 ///////////////////////////////////////////////
+
+function update_mode(){
+
+	if (game_mode == 'play'){
+		$('#gamemode').html('<b>play</b> | <a href="#" onclick="game_mode=\'edit\'; update_mode(); return false;">edit</a>');
+	}else{
+		$('#gamemode').html('<a href="#" onclick="game_mode=\'play\'; update_mode(); return false;">play</a> | <b>edit</b>');
+	}
+}
 
 //
 // we have connected. populate player list
@@ -566,7 +576,11 @@ var t; // the map tileset
 var map1; // the map!
 var ts1; // a preview of all the tiles in the map tileset
 var s1; // spritemap for the players
+var edit_bg;
 var tile_sel = 0;
+var game_mode = 'play';
+
+var drag = { active: false };
 
 
 //
@@ -597,6 +611,7 @@ function init_tiles(){
 	t = new tileset('pink_big.png', 16);
 	//t = new tileset('pink.png', 8);
 	s1 = new spritemap('bunnies.gif');
+	edit_bg = new spritemap('bg.gif');
 
 	t.onready = wait.add_wait();
 	s1.onready = wait.add_wait();
@@ -618,6 +633,8 @@ function init_tiles(){
 	//
 
 	$('#playarea2').click(function(e){
+
+		if (game_mode != 'play') return;
 
 		var x = e.pageX - this.offsetLeft;
 		var y = e.pageY - this.offsetTop;
@@ -656,6 +673,30 @@ function init_tiles(){
 		draw_palette();
 	});
 
+	$('#playarea2').mousedown(function(e){
+
+		if (game_mode != 'edit') return;
+
+		drag.active = true;
+		drag.last = [e.screenX, e.screenY];
+	});
+
+	$('#playarea2').mousemove(function(e){
+
+		if (!drag.active) return;
+
+		var dx = e.screenX - drag.last[0];
+		var dy = e.screenY - drag.last[1];
+
+		map_offset[0] += dx;
+		map_offset[1] += dy;
+
+		drag.last = [e.screenX, e.screenY];
+	});
+
+	$('#playarea2').mouseup(function(e){
+		drag.active = false;
+	});
 }
 
 ///////////////////////////////////////////////
@@ -679,6 +720,14 @@ function redraw_playarea(){
 
 	if (!render_game) return;
 
+	if (game_mode == 'edit'){
+		
+		var ptrn = ctx.createPattern(edit_bg.img, 'repeat');
+		ctx.fillStyle = ptrn;
+		ctx.fillRect(0, 0, canvas_size[0], canvas_size[1]);
+	}
+
+
 	// find the position of our player
 	var player_pos = [0, 0];
 	for (var i in players){
@@ -688,7 +737,10 @@ function redraw_playarea(){
 	}
 
 	// position and draw the map
-	map_offset = get_map_pos(map1, player_pos);
+	if (game_mode == 'play'){
+		map_offset = get_map_pos(map1, player_pos);
+	}
+
 	ctx.drawImage(map1.buffer, map_offset[0], map_offset[1]);
 
 	// draw other players
@@ -883,6 +935,7 @@ body {
 		<div id="con"></div>
 		<span id="lag">Disconnected</span>
 	</div>
+	<span id="gamemode"></span>
 </div>
 
 <div id="onlinelist">
