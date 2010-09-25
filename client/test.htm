@@ -5,6 +5,50 @@
 <script type="text/javascript">
 
 //
+// the globals
+//
+
+var t; // the map tileset
+var map1; // the map!
+var ts1; // a preview of all the tiles in the map tileset
+var s1; // spritemap for the players
+var edit_bg;
+var tile_sel = 0;
+var game_mode = 'play';
+
+var drag = { active: false };
+
+var con;
+var render_game = false;
+
+var players = {};
+
+var canvas_size = [300, 300];
+var player_pos = [10,10];
+var map_offset = [0,0];
+
+
+//
+// here be the map grid. entries are the tileset index
+//
+
+var map_data = [
+	[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9,10, 9,11,13,13,13,13,13,13,13,13],
+	[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+	[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 2, 3, 3,13,13,13,13,13,13,13,13,13],
+	[13,21,21,21,21,21,21,21,21,21,21, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+	[14, 9,42,15,15,15,15,16, 9, 9, 9, 9,10, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+	[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
+	[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+];
+
+
+
+
+//
 // server connection and message/event handling logic
 //
 
@@ -189,8 +233,6 @@ function serverConnection(config){
 // let us begin
 //
 
-var con;
-
 $(document).ready(function(){
 
 	init_tiles();
@@ -290,8 +332,6 @@ function update_mode(){
 // this includes us!
 //
 
-var render_game = false;
-
 function wipeStatus(){
 	$('#onlinelistplayers').html('');
 }
@@ -306,8 +346,6 @@ function handleWelcome(msg){
 
 	render_game = true;
 }
-
-var players = {};
 
 function addPlayer(uid, p){
 
@@ -572,34 +610,6 @@ function waitlist(){
 
 ///////////////////////////////////////////////
 
-var t; // the map tileset
-var map1; // the map!
-var ts1; // a preview of all the tiles in the map tileset
-var s1; // spritemap for the players
-var edit_bg;
-var tile_sel = 0;
-var game_mode = 'play';
-
-var drag = { active: false };
-
-
-//
-// here be the map grid. entries are the tileset index
-//
-
-var map_data = [
-	[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-	[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-	[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9,10, 9,11,13,13,13,13,13,13,13,13],
-	[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-	[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9, 9, 9,11,13,13,13,13,13,13,13,13],
-	[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 2, 3, 3,13,13,13,13,13,13,13,13,13],
-	[13,21,21,21,21,21,21,21,21,21,21, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
-	[14, 9,42,15,15,15,15,16, 9, 9, 9, 9,10, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
-	[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
-	[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
-];
-
 //
 // load the tileset, the map data, and the player sprite. prepare for player interaction
 //
@@ -704,10 +714,6 @@ function init_tiles(){
 //
 // Begin the play area, which is the canvas that the player actually sees and interacts with
 //
-
-var canvas_size = [300, 300];
-var player_pos = [10,10];
-var map_offset = [0,0];
 
 function redraw_playarea(){
 
