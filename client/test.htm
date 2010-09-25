@@ -8,15 +8,17 @@
 // the globals
 //
 
-var t; // the map tileset
-var map1; // the map!
-var ts1; // a preview of all the tiles in the map tileset
 var s1; // spritemap for the players
 var edit_bg;
 var tile_sel = 0;
 var game_mode = 'play';
 
-var drag = { active: false };
+var drag = { active: false }; // used for slipping the map in edit mode
+var g_map = {}; // info about the current map (data, tileset, map buffer, tileset buffer) will go here
+var g_loaded = { // this lets us know which things are still loading
+	map: false,
+	misc: false,
+};
 
 var con;
 var render_game = false;
@@ -338,6 +340,8 @@ function wipeStatus(){
 
 function handleWelcome(msg){
 
+	map_load(msg.map);
+
 	wipeStatus();
 
 	for (var i in msg.players){
@@ -570,9 +574,9 @@ function tilesetPreview(tileset, cols, spacing){
 // be fired once all of the sub-events fire. e.g.
 //
 // var w = new waitlist();
-// map1.onready = w.add_wait();
 // map2.onready = w.add_wait();
-// sprites2.onready = w.add_wait();
+// map3.onready = w.add_wait();
+// sprites7.onready = w.add_wait();
 // w.onready = function(){ ...only fires once all objects are ready... }
 //
 
@@ -616,25 +620,29 @@ function waitlist(){
 
 function init_tiles(){
 
-	var wait = new waitlist();
+	//
+	// load some misc assets
+	//
 
-	t = new tileset('pink_big.png', 16);
-	//t = new tileset('pink.png', 8);
 	s1 = new spritemap('bunnies.gif');
 	edit_bg = new spritemap('bg.gif');
 
-	t.onready = wait.add_wait();
+	var wait = new waitlist();
+
 	s1.onready = wait.add_wait();
+	edit_bg.onready = wait.add_wait();
 
 	wait.onready = function(){
 
-		map1 = new gameMap(map_data, t);
-		ts1 = new tilesetPreview(t, 11, 2);
-
-		draw_palette();
-
-		window.setInterval(redraw_playarea, 50); // repaint the playarea canvas every 50ms
+		g_loaded.misc = true;
 	}
+
+
+	//
+	// start the
+	//
+
+	window.setInterval(redraw_playarea, 50); // repaint the playarea canvas every 50ms
 
 
 	//
@@ -656,31 +664,10 @@ function init_tiles(){
 		// ignore clicks outside the map
 		if (x < 0) return;
 		if (y < 0) return;
-		if (x >= map1.w) return;
-		if (y >= map1.h) return;
+		if (x >= g_map.map.w) return;
+		if (y >= g_map.map.h) return;
 
 		con.send({msg: 'move', x:x, y:y});
-	});
-
-	$('#tilepalette').click(function(e){
-
-		var x = e.pageX - this.offsetLeft;
-		var y = e.pageY - this.offsetTop;
-
-		// find the tile we clicked on
-		var tile_x = Math.floor((x - 5) / (t.sz + ts1.spacing));
-		var tile_y = Math.floor((y - 5) / (t.sz + ts1.spacing));
-
-		// if we clicked off the right edge, ignore
-		if (tile_x >= ts1.cols) return;
-
-		// check we didn't go off the bottom
-		var tile_id = tile_x + (tile_y * ts1.cols);
-		if (tile_id >= ts1.num) return;
-
-		// select and redraw
-		tile_sel = tile_id;
-		draw_palette();
 	});
 
 	$('#playarea2').mousedown(function(e){
@@ -707,6 +694,29 @@ function init_tiles(){
 	$('#playarea2').mouseup(function(e){
 		drag.active = false;
 	});
+
+	$('#tilepalette').click(function(e){
+
+		if (!g_loaded.map) return;
+
+		var x = e.pageX - this.offsetLeft;
+		var y = e.pageY - this.offsetTop;
+
+		// find the tile we clicked on
+		var tile_x = Math.floor((x - 5) / (g_map.tileset.sz + g_map.tsp.spacing));
+		var tile_y = Math.floor((y - 5) / (g_map.tileset.sz + g_map.tsp.spacing));
+
+		// if we clicked off the right edge, ignore
+		if (tile_x >= g_map.tsp.cols) return;
+
+		// check we didn't go off the bottom
+		var tile_id = tile_x + (tile_y * g_map.tsp.cols);
+		if (tile_id >= g_map.tsp.num) return;
+
+		// select and redraw
+		tile_sel = tile_id;
+		draw_palette();
+	});
 }
 
 ///////////////////////////////////////////////
@@ -725,6 +735,7 @@ function redraw_playarea(){
 	ctx.clearRect(0, 0, canvas_size[0], canvas_size[1]);
 
 	if (!render_game) return;
+	if (!g_loaded.map) return;
 
 	if (game_mode == 'edit'){
 		
@@ -744,10 +755,10 @@ function redraw_playarea(){
 
 	// position and draw the map
 	if (game_mode == 'play'){
-		map_offset = get_map_pos(map1, player_pos);
+		map_offset = get_map_pos(g_map.map, player_pos);
 	}
 
-	ctx.drawImage(map1.buffer, map_offset[0], map_offset[1]);
+	ctx.drawImage(g_map.map.buffer, map_offset[0], map_offset[1]);
 
 	// draw other players
 	for (var i in players){
@@ -792,7 +803,7 @@ function draw_palette(){
 	var ctx = pal.getContext("2d");
 	ctx.clearRect(0, 0, p_w, p_h);
 
-	ts1.drawSelected(ctx, 5, 5, tile_sel);
+	g_map.tsp.drawSelected(ctx, 5, 5, tile_sel);
 }
 
 
@@ -849,6 +860,26 @@ function player(uid, is_self, state){
 	};
 
 	this.update_state(state);
+}
+
+function map_load(map){
+
+	g_loaded.map = false;
+	g_map.data = map.map_data;
+	g_map.src = map.tileset;
+	g_map.scale = map.tileset_scale;
+
+	g_map.tileset = new tileset(g_map.src, g_map.scale);
+	g_map.tileset.onready = function(){
+
+		g_map.map = new gameMap(g_map.data, g_map.tileset);
+		g_map.tsp = new tilesetPreview(g_map.tileset, 11, 2);
+
+		g_loaded.map = true;
+
+		draw_palette();
+		console.log('map has been loaded!');
+	};
 }
 
 </script>
