@@ -458,45 +458,74 @@ function gameMap(grid, tileset){
 
 	var self = this;
 
-	this.grid = grid;
 	this.tileset = tileset;
-
-
-	//
-	// find the size of the map in tiles
-	//
-
-	this.tw = 0;
-	this.th = grid.length;
-
-	for (var y=0; y<this.th; y++){
-		if (grid[y].length > this.tw) this.tw = grid[y].length;
-	}
-
-
-	//
-	// now we have the real size, so create the buffer
-	//
-
-	this.w = this.tw * tileset.sz;
-	this.h = this.th * tileset.sz;
+	this.grid = null;
 	this.buffer = document.createElement('canvas');
-	this.buffer.width = this.w;
-	this.buffer.height = this.h;
 
 
 	//
-	// paint the map onto the buffer
+	// store a new grid and render it
 	//
 
-	var ctx = this.buffer.getContext("2d");
+	this.updateGrid = function(grid){
 
-	for (var y=0; y<grid.length; y++){
-		for (var x=0; x<grid[y].length; x++){
+		self.grid = grid;
 
-			tileset.blt(ctx, grid[y][x], x * tileset.sz, y * tileset.sz);
+		//
+		// find the size of the map in tiles
+		//
+
+		self.tw = 0;
+		self.th = grid.length;
+
+		for (var y=0; y<self.th; y++){
+			if (grid[y].length > self.tw) self.tw = grid[y].length;
 		}
+
+		self.paintMap();
 	}
+
+
+	//
+	// repaint our buffer (grid size already calculated)
+	//
+
+	self.paintMap = function(){
+
+		self.w = self.tw * tileset.sz;
+		self.h = self.th * tileset.sz;
+
+		self.buffer.width = self.w;
+		self.buffer.height = self.h;
+
+		var ctx = self.buffer.getContext("2d");
+
+		for (var y=0; y<grid.length; y++){
+			for (var x=0; x<grid[y].length; x++){
+
+				tileset.blt(ctx, grid[y][x], x * tileset.sz, y * tileset.sz);
+			}
+		}
+	};
+
+
+	//
+	// modfiy the grid
+	//
+
+	this.modifyGrid = function(tx, ty, tile_id){
+
+		if (tx < 0) return;
+		if (ty < 0) return;
+		if (tx >= self.tw) return;
+		if (ty >= self.th) return;
+
+		self.grid[ty][tx] = tile_id;
+		self.paintMap();
+	};
+
+
+	this.updateGrid(grid);
 }
 
 
@@ -881,6 +910,11 @@ function map_load(map){
 
 function edit_clicked(x, y){
 	console.log('edit clicked at '+x+','+y);
+
+	var tx = Math.floor(x / g_map.tileset.sz);
+	var ty = Math.floor(y / g_map.tileset.sz);
+
+	g_map.map.modifyGrid(tx, ty, tile_sel);
 }
 
 </script>
