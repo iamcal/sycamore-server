@@ -13,7 +13,7 @@ var edit_bg;
 var tile_sel = 0;
 var game_mode = 'play';
 
-var drag = { active: false }; // used for slipping the map in edit mode
+var drag = { active: false, perhaps: false }; // used for slipping the map in edit mode
 var g_map = {}; // info about the current map (data, tileset, map buffer, tileset buffer) will go here
 var g_loaded = { // this lets us know which things are still loading
 	map: false,
@@ -654,11 +654,22 @@ function init_tiles(){
 
 		if (game_mode != 'edit') return;
 
-		drag.active = true;
+		drag.perhaps = true;
 		drag.last = [e.screenX, e.screenY];
+		drag.click = [e.pageX - (this.offsetLeft + map_offset[0]), e.pageY - (this.offsetTop + map_offset[1])];
 	});
 
 	$('#playarea2').mousemove(function(e){
+
+		if (drag.perhaps){
+			var dx = Math.abs(e.screenX - drag.last[0]);
+			var dy = Math.abs(e.screenY - drag.last[1]);
+
+			if (dx > 10 || dy > 10){
+				drag.active = true;
+				drag.perhaps = false;
+			}		
+		}
 
 		if (!drag.active) return;
 
@@ -672,7 +683,13 @@ function init_tiles(){
 	});
 
 	$('#playarea2').mouseup(function(e){
+
+		if (drag.perhaps){
+			edit_clicked(drag.click[0], drag.click[1]);
+		}
+
 		drag.active = false;
+		drag.perhaps = false;
 	});
 
 	$('#tilepalette').click(function(e){
@@ -860,6 +877,10 @@ function map_load(map){
 		draw_palette();
 		console.log('map has been loaded!');
 	};
+}
+
+function edit_clicked(x, y){
+	console.log('edit clicked at '+x+','+y);
 }
 
 </script>
