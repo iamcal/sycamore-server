@@ -20,6 +20,7 @@ exports.gameEngine = function(){
 	
 	this.addSession = function(client){
 
+		//console.log(client);
 		console.log(client.sessionId+': session connected');
 
 		// create a new client record.

@@ -1,6 +1,7 @@
 <script type="text/javascript" src="js/json2.js"></script>
 <script type="text/javascript" src="js/jquery.min.js"></script>
-<script type="text/javascript" src="js/socket.io.js"></script>
+<script type="text/javascript" src="js/web_socket.js"></script>
+<script type="text/javascript" src="js/socket_wrapper.js"></script>
 <script type="text/javascript" src="js/config.js"></script>
 <script type="text/javascript">
 
@@ -34,7 +35,7 @@ var map_offset = [0,0];
 // server connection and message/event handling logic
 //
 
-io.setPath('./js/');
+//io.setPath('./js/');
 
 function serverConnection(config){
 
@@ -47,10 +48,13 @@ function serverConnection(config){
 	this.lastConnected = 0;
 	this.eventHandlers = {};
 
-	this.socket = new io.Socket(config.host, {
-		port: config.port
-		//transports: ['xhr-polling']
+	this.socket = new SocketWrapper({
+		'host' : 'localhost',
+		'port' : '8081',
+		'path' : '/socket'
 	});
+
+	console.log('socket', this.socket);
 
 
 	//
@@ -58,6 +62,8 @@ function serverConnection(config){
 	//
 
 	this.socket.on('connect', function(){
+
+		console.log('socket on connect');
 
 		// did we just reconnect after trying to go offline?
 		if (!self.online && self.socket.connected){
@@ -72,10 +78,8 @@ function serverConnection(config){
 	});
 
 	this.socket.on('close', function(){
-		//console.log('closed');
-	});
 
-	this.socket.on('disconnect', function(){
+		console.log('socket on close');
 
 		self.emit('disconnected');
 		self.emit('state', 'disconnected');
@@ -98,6 +102,10 @@ function serverConnection(config){
 			//console.log('lag: '+diff);
 			return;
 		}
+
+		console.log('socket on message');
+		console.log('message', data);
+
 
 		if (self.online){
 			self.emit('message', data);
@@ -273,7 +281,8 @@ $(document).ready(function(){
 
 	con.on('message', function(msg){
 
-		console.log('got a message!', msg);
+		console.log('got a message!')
+		console.log(msg);
 
 		switch (msg.msg){
 			case 'welcome': return handleWelcome(msg);
