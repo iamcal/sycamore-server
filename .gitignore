@@ -1,2 +1,4 @@
-config.js
+.vagrant
 client/js/config.js
+server/config.js
+server/node_modules
