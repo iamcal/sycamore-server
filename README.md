@@ -3,15 +3,16 @@ Sycamore
 
 An experiment / work in progress.
 
-Requires <a href="http://github.com/nodejitsu/node-http-proxy">node-http-proxy</a> and
-<a href="http://github.com/LearnBoost/Socket.IO-node">socket.io-node</a>. The latter is not an NPM package,
-so you might need to hack paths and stuff.
+Requirements can be found in the `vagrant.sh` file, or simply boot a vagrant box and it should work.
+
 
 Setup
 -----
 
-Copy `config.example.js` to `config.js`. Edit values in `config.js` to reflect your local setup. Run `node server.js`.
+Copy `/server/config.example.js` to `/server/config.js` and edit the values.
 
-Do the same thing for the config files in `client/js/`.
+Copy `/client/config.example.js` to `/client/config.js` and edit the values.
+
+In the `/server/` directory, run `node server.js`.
 
 Play.
