@@ -47,7 +47,7 @@ socket_server.on('connection', function(ws){
 		engine.clientMsg(client, message);
 	});
 
-	ws.on('disconnect', function(){
+	ws.on('close', function(){
 
 		engine.removeSession(client);
 	});
@@ -62,7 +62,7 @@ function client_wrapper(ss, ws){
 	var self = this;
 	this.ss = ss;
 	this.ws = ws;
-	this.sessionId = client_ids++;
+	this.sessionId = 'session_'+(client_ids++);
 
 	this.broadcast = function(data) {
 		for (var i in self.ss.clients)
