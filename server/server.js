@@ -1,31 +1,21 @@
 var http = require('http'),
 	url = require('url'),
 	fs = require('fs'),
-	io = require('../socket.io-node/'),
+	io = require('socket.io'),
 	sys = require('sys'),
-	httpProxy = require('http-proxy');
+	express = require('express');
 
 var config = require('./config').config,
 	engine = require('./lib/engine');
 
 
-//
-// our base server will proxy any regular requests through
-// to apache running behind it. only /socket.io/ requests
-// will be handled specially.
-//
-// in this version i'm listening on 8080 and proxying to
-// 80, but in real production you'd do it the other way
-// around, so everything could run over 80 for maximum
-// firewall goodness.
-//
+// express app is the top level server
+var app = express();
+app.use(express.static(__dirname + "/../client"));
 
-var server = http.createServer(function(req, res){
-
-	var proxy = new httpProxy.HttpProxy(req, res);
-	proxy.proxyRequest(config.proxy_port, config.proxy_address, req, res);
-});
-server.listen(config.listen_port);
+// create server on port 80
+var server = http.createServer(app);
+server.listen(80);
 
 
 //
@@ -44,7 +34,9 @@ var engine = new engine.gameEngine();
 	
 var io = io.listen(server);
 
-io.on('connection', function(client){
+io.sockets.on('connection', function(client){
+
+	console.log('got client connection');
 
 	engine.addSession(client);
 
