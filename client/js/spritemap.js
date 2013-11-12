@@ -6,7 +6,7 @@ function SycamoreSpritemap(animations, speed){
 	this.animations = animations;
 	this.speed = speed || 1;
 
-	this.blt = function(ctx, tileset_name, animation_name, frame, x, y){
+	this.blt = function(ctx, tileset_name, tile_x, tile_y, x, y){
 
 		var ts = g_tilesets[tileset_name];
 		if (!ts){
@@ -15,8 +15,17 @@ function SycamoreSpritemap(animations, speed){
 		}
 		if (!ts.ready) return;
 
+		ts.blt_tile(ctx, tile_x, tile_y, x, y);
+	};
+
+
+	// determine which tile index to use to this frame of
+	// this animation.
+
+	this.animate_to = function(animation_name, frame){
+
 		var ani = this.animations[animation_name];
-		if (!ani) return;
+		if (!ani) return [-1, -1];
 
 		var f = 0+frame;
 
@@ -24,10 +33,7 @@ function SycamoreSpritemap(animations, speed){
 
 		f = (f % (ani.length >>> 1)) << 1;
 
-		var tile_x = ani[f];
-		var tile_y = ani[f+1];
-
-		ts.blt_tile(ctx, tile_x, tile_y, x, y);
+		return [ani[f], ani[f+1]];
 	};
 
 	return self;

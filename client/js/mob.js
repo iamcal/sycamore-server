@@ -15,9 +15,13 @@ function SycamoreMob(w, h){
 
 	this.blt = function(ctx, animation, frame, x, y){
 
+		var idx = self.spritemap.animate_to(animation, frame);
+
+		if (idx[0] < 0) return;
+
 		for (var i=0; i<self.layers.length; i++){
 
-			self.spritemap.blt(ctx, self.layers[i], animation, frame, x, y);
+			self.spritemap.blt(ctx, self.layers[i], idx[0], idx[1], x, y);
 		}
 	};
 
