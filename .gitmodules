@@ -1,0 +1,3 @@
+[submodule "client/img/lpc"]
+	path = client/img/lpc
+	url = git@github.com:jrconway3/Universal-LPC-spritesheet.git

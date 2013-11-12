@@ -1,0 +1,411 @@
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/tileset.js"></script>
+<script type="text/javascript" src="js/spritemap.js"></script>
+<script type="text/javascript" src="js/mob.js"></script>
+<script type="text/javascript" src="js/interval.js"></script>
+<script type="text/javascript">
+
+//
+// the globals
+//
+
+var g_fps = 30;
+
+var g_map = {}; // info about the current map (data, tileset, map buffer, tileset buffer) will go here
+var g_loaded = { // this lets us know which things are still loading
+	map: false,
+	misc: false,
+};
+
+var players = [];
+
+var canvas_size = [640, 480];
+var player_pos = [10,10];
+var map_offset = [0,0];
+
+var keys_down = {};
+
+$(document).ready(function(){
+
+	init_tiles();
+
+	map_load({
+		'tileset' : 'pink_big.png',
+		'tileset_scale' : '16',
+		'map_data' : [
+			[13,21,21,21,21,21,21,13,13,13,14, 9, 9, 9, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+			[14, 9,51,52,10, 9,10,11,13,13,14, 9, 7, 8, 0, 1, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+			[14,10,53,54, 9,10, 9,11,13,13,14, 9,23,24,17,18, 9,10, 9,11,13,13,13,13,13,13,13,13],
+			[14, 9,10, 9,10, 9,10,11,13,13,14, 9,33,34,29,30, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+			[13, 3, 6,10, 9, 2, 3,13,13,13,14, 9,39,40,35,36, 9, 9, 9,11,13,13,13,13,13,13,13,13],
+			[13,13,13, 3, 3,13,13,13,13,13,14, 9, 9, 9, 9, 9, 2, 3, 3,13,13,13,13,13,13,13,13,13],
+			[13,21,21,21,21,21,21,21,21,21,21, 9, 9, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+			[14, 9,42,15,15,15,15,16, 9, 9, 9, 9,10, 9, 9, 9,11,13,13,13,13,13,13,13,13,13,13,13],
+			[14, 9,43,44,45,44,45,28, 9, 9, 9, 9, 9, 9, 9, 9,41,21,21,21,21,21,21,21,21,21,21,21],
+			[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+		]
+	});
+
+	$(document).keydown(function(ev){
+		keys_down[ev.keyCode] = true;
+	}).keyup(function(ev){
+		delete keys_down[ev.keyCode];
+	}).blur(function(){
+		keys_down = {};
+	});
+
+});
+
+///////////////////////////////////////////////
+
+//
+// load an spritesheet image and prep for drawing
+//
+
+function spritemap(src){
+
+	var self = this;
+
+	this.img = new Image();
+	this.ready = false;
+	this.onready = null;
+
+	this.img.onload = function(){
+		self.ready = true;
+		if (self.onready) self.onready();
+	};
+
+	this.img.src = src;
+
+	this.blt = function(ctx, sx, sy, sw, sh, dx, dy){
+
+		ctx.drawImage(self.img, sx, sy, sw, sh, dx, dy, sw, sh);
+	};
+}
+
+
+//
+// load a tileset image and prep for drawing
+//
+
+function tileset(src, sz){
+
+	var self = this;
+
+	this.img = new Image();
+	this.sz = sz;
+	this.ready = false;
+	this.onready = null;
+	this.w = 1;
+	this.h = 1;
+
+	this.img.onload = function(){
+		self.w = Math.floor(self.img.width / self.sz);
+		self.h = Math.floor(self.img.height / self.sz);
+		self.ready = true;
+		if (self.onready) self.onready();
+	};
+
+	this.img.src = src;
+
+	this.blt = function(ctx, tile_id, x, y){
+
+		var sx = tile_id % self.w;
+		var sy = Math.floor(tile_id / self.w);
+
+		ctx.drawImage(self.img, sx * self.sz, sy * self.sz, self.sz, self.sz, x, y, self.sz, self.sz);
+	};	
+}
+
+
+//
+// a game map takes a grid and a tileset, creates a buffer canvas and draws the entire thing onto it
+//
+
+function gameMap(grid, tileset){
+
+	var self = this;
+
+	this.tileset = tileset;
+	this.grid = null;
+	this.buffer = document.createElement('canvas');
+
+
+	//
+	// store a new grid and render it
+	//
+
+	this.updateGrid = function(grid){
+
+		self.grid = grid;
+
+		//
+		// find the size of the map in tiles
+		//
+
+		self.tw = 0;
+		self.th = grid.length;
+
+		for (var y=0; y<self.th; y++){
+			if (grid[y].length > self.tw) self.tw = grid[y].length;
+		}
+
+		self.paintMap();
+	}
+
+
+	//
+	// repaint our buffer (grid size already calculated)
+	//
+
+	self.paintMap = function(){
+
+		self.w = self.tw * tileset.sz;
+		self.h = self.th * tileset.sz;
+
+		self.buffer.width = self.w;
+		self.buffer.height = self.h;
+
+		var ctx = self.buffer.getContext("2d");
+
+		for (var y=0; y<grid.length; y++){
+			for (var x=0; x<grid[y].length; x++){
+
+				tileset.blt(ctx, grid[y][x], x * tileset.sz, y * tileset.sz);
+			}
+		}
+	};
+
+
+	//
+	// modfiy the grid
+	//
+
+	this.modifyGrid = function(tx, ty, tile_id){
+
+		if (tx < 0) return;
+		if (ty < 0) return;
+		if (tx >= self.tw) return;
+		if (ty >= self.th) return;
+
+		self.grid[ty][tx] = tile_id;
+		self.paintMap();
+	};
+
+
+	this.updateGrid(grid);
+}
+
+
+///////////////////////////////////////////////
+
+//
+// waitlist is a simple class that helps you wait for multiple events to complete.
+// just hook all of the events you want to wait for up to handlers and onready will
+// be fired once all of the sub-events fire. e.g.
+//
+// var w = new waitlist();
+// map2.onready = w.add_wait();
+// map3.onready = w.add_wait();
+// sprites7.onready = w.add_wait();
+// w.onready = function(){ ...only fires once all objects are ready... }
+//
+
+function waitlist(){
+
+	var self = this;
+
+	this.waiting = {};
+	this.uid = 1;
+	this.fired = false;
+	this.onready = null;
+
+	this.add_wait = function(){
+		var u = self.uid++;
+		self.waiting[u] = 0;
+		return function(){
+			self.waiting[u] = 1;
+			self.check();
+		};
+	}
+
+	this.check = function(){
+
+		if (self.fired) return;
+
+		for (var i in self.waiting){
+			if (!self.waiting[i]) return;
+		}
+
+		self.fired = true;
+		if (self.onready) self.onready();
+	}
+}
+
+
+///////////////////////////////////////////////
+
+//
+// load the tileset, the map data, and the player sprite. prepare for player interaction
+//
+
+var s1, edit_bg;
+var pc_mob;
+
+function init_tiles(){
+
+	//
+	// load some misc assets
+	//
+
+	s1 = new spritemap('bunnies.gif');
+	edit_bg = new spritemap('bg.gif');
+
+	create_tileset('base_male_tanned', 'img/lpc/body/female/tanned.png', 64, 64);
+	create_tileset('cape', 'img/lpc/behind_body/cape/normal/female/cape_white.png', 64, 64);
+	create_tileset('vest', 'img/lpc/torso/dress_female/blue_vest.png', 64, 64);
+
+	create_spritemap('pc', {
+		'left'  : [0,9,1,9,2,9,3,9,4,9,5,9,6,9,7,9,8,9],
+		'right' : [0,11,1,11,2,11,3,11,4,11,5,11,6,11,7,11,8,11],
+		'up'	: [0,8,1,8,2,8,3,8,4,8,5,8,6,8,7,8,8,8],
+		'down'	: [0,10,1,10,2,10,3,10,4,10,5,10,6,10,7,10,8,10],
+	});
+
+	pc_mob = new SycamoreMob();
+	pc_mob.spritemap = g_spritemaps['pc'];
+	pc_mob.layers = ['cape', 'base_male_tanned', 'vest'];
+	pc_mob.walking = false;
+	pc_mob.direction = 'up';
+
+
+	var wait = new waitlist();
+
+	s1.onready = wait.add_wait();
+	edit_bg.onready = wait.add_wait();
+
+	wait.onready = function(){
+
+		g_loaded.misc = true;
+	}
+
+
+	//
+	// start the render loop @ 30 fps
+	//
+
+	startGameLoop(game_loop, 30);
+}
+
+///////////////////////////////////////////////
+
+//
+// the movement loop
+//
+
+function game_loop(frame, elapsed){
+
+	// if pc was walking last loop, move them now before we decide on a new
+	// direction. by multiplying by 'elapsed', we move them 50 pixels per second.
+
+	if (pc_mob.walking){
+		var dist = 3 * elapsed;
+		if (pc_mob.direction == 'left' ) pc_mob.x -= dist;
+		if (pc_mob.direction == 'right') pc_mob.x += dist;
+		if (pc_mob.direction == 'up'   ) pc_mob.y -= dist;
+		if (pc_mob.direction == 'down' ) pc_mob.y += dist;
+	}
+
+	pc_mob.walking = false;
+	if (keys_down[37]){ pc_mob.direction = 'left' ; pc_mob.walking = true; }
+	if (keys_down[39]){ pc_mob.direction = 'right'; pc_mob.walking = true; }
+	if (keys_down[38]){ pc_mob.direction = 'up'   ; pc_mob.walking = true; }
+	if (keys_down[40]){ pc_mob.direction = 'down' ; pc_mob.walking = true; }
+
+	render(frame);
+}
+
+///////////////////////////////////////////////
+
+//
+// Begin the play area, which is the canvas that the player actually sees and interacts with
+//
+
+function render(frame){
+
+	var canvas = document.getElementById('playarea');
+	canvas.width = canvas_size[0];
+	canvas.height = canvas_size[1];
+
+	var ctx = canvas.getContext("2d");
+	ctx.clearRect(0, 0, canvas_size[0], canvas_size[1]);
+
+	if (!g_loaded.map) return;
+
+	var player_pos = [0, 0];
+
+	map_offset = get_map_pos(g_map.map, player_pos);
+
+	ctx.drawImage(g_map.map.buffer, map_offset[0], map_offset[1]);
+
+	pc_mob.draw(ctx, frame);
+}
+
+function get_map_pos(map, camera){
+
+	// first, position the map to put the camera position in the middle of the canvas
+	var px = (canvas_size[0] >> 1) - camera[0];
+	var py = (canvas_size[1] >> 1) - camera[1];
+
+	// then make sure we're within bounds
+	if (px > 0) px = 0;
+	if (py > 0) py = 0;
+	if (px < 0 - (map.w - canvas_size[0])) px = 0 - (map.w - canvas_size[0]);
+	if (py < 0 - (map.h - canvas_size[1])) py = 0 - (map.h - canvas_size[1]);
+
+	// check we don't need to just center it (when map is smaller than display canvas)
+	if (map.w < canvas_size[0]) px = (canvas_size[0] >> 1) - Math.round(map.w / 2);
+	if (map.h < canvas_size[1]) py = (canvas_size[1] >> 1) - Math.round(map.h / 2);
+
+	return [px, py];
+}
+
+function map_load(map){
+
+	g_loaded.map = false;
+	g_map.data = map.map_data;
+	g_map.src = map.tileset;
+	g_map.scale = map.tileset_scale;
+
+	g_map.tileset = new tileset(g_map.src, g_map.scale);
+	g_map.tileset.onready = function(){
+
+		g_map.map = new gameMap(g_map.data, g_map.tileset);
+
+		g_loaded.map = true;
+
+		console.log('map has been loaded!');
+	};
+}
+
+
+
+
+</script>
+<style>
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#playarea {
+	position: absolute;
+	left: 20px;
+	top: 20px;
+	border: 1px solid #666;
+	background-color: #f5f5f5;
+}
+
+</style>
+
+<canvas id="playarea"></canvas>
