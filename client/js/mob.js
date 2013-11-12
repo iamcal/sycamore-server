@@ -1,11 +1,14 @@
 
 
-function SycamoreMob(){
+function SycamoreMob(w, h){
 
 	var self = this;
 
 	this.spritemap = null;
 	this.layers = [];
+
+	this.w = w;
+	this.h = h;
 
 	this.x = 100;
 	this.y = 100;

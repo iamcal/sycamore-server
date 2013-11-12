@@ -75,10 +75,10 @@ function startGameLoop(callback, fps){
 		var elapsed_frame = frame - last_f;
 		last_f = frame;
 
-		callback(frame, elapsed_frame);
+		if (elapsed_frame) callback(frame, elapsed_frame);
 	};
 
-	return window.requestInterval(inner_loop, 1000 / fps);
+	return window.requestInterval(inner_loop, 1000 / (fps * 2));
 }
 
 function stopGameLoop(id){

@@ -261,22 +261,35 @@ function init_tiles(){
 	s1 = new spritemap('bunnies.gif');
 	edit_bg = new spritemap('bg.gif');
 
-	create_tileset('base_male_tanned', 'img/lpc/body/female/tanned.png', 64, 64);
-	create_tileset('cape', 'img/lpc/behind_body/cape/normal/female/cape_white.png', 64, 64);
-	create_tileset('vest', 'img/lpc/torso/dress_female/blue_vest.png', 64, 64);
-
 	create_spritemap('pc', {
 		'left'  : [0,9,1,9,2,9,3,9,4,9,5,9,6,9,7,9,8,9],
 		'right' : [0,11,1,11,2,11,3,11,4,11,5,11,6,11,7,11,8,11],
 		'up'	: [0,8,1,8,2,8,3,8,4,8,5,8,6,8,7,8,8,8],
 		'down'	: [0,10,1,10,2,10,3,10,4,10,5,10,6,10,7,10,8,10],
-	});
+	}, 3);
 
-	pc_mob = new SycamoreMob();
+	pc_mob = new SycamoreMob(64, 64);
 	pc_mob.spritemap = g_spritemaps['pc'];
-	pc_mob.layers = ['cape', 'base_male_tanned', 'vest'];
+	pc_mob.layers = [
+		'img/lpc/behind_body/cape/normal/female/cape_white.png',
+		'img/lpc/body/female/tanned.png',
+		'img/lpc/body/female/nose/straightnose_light.png',
+		'img/lpc/body/female/eyes/yellow.png',
+		'img/lpc/hair/female/bangslong/blonde.png',
+
+		'img/lpc/torso/dress_female/blue_vest.png',
+		'img/lpc/hands/gloves/female/metal_gloves_female.png',
+		'img/lpc/legs/armor/female/metal_pants_female.png',
+		'img/lpc/feet/armor/female/metal_boots_female.png',
+
+		'img/lpc/torso/plate/arms_female.png',
+		'img/lpc/torso/plate/chest_female.png',
+		'img/lpc/weapons/right hand/female/dagger_female.png',
+
+
+	];
 	pc_mob.walking = false;
-	pc_mob.direction = 'up';
+	pc_mob.direction = 'down';
 
 
 	var wait = new waitlist();
@@ -310,10 +323,10 @@ function game_loop(frame, elapsed){
 
 	if (pc_mob.walking){
 		var dist = 3 * elapsed;
-		if (pc_mob.direction == 'left' ) pc_mob.x -= dist;
-		if (pc_mob.direction == 'right') pc_mob.x += dist;
-		if (pc_mob.direction == 'up'   ) pc_mob.y -= dist;
-		if (pc_mob.direction == 'down' ) pc_mob.y += dist;
+	//	if (pc_mob.direction == 'left' ) pc_mob.x -= dist;
+	//	if (pc_mob.direction == 'right') pc_mob.x += dist;
+	//	if (pc_mob.direction == 'up'   ) pc_mob.y -= dist;
+	//	if (pc_mob.direction == 'down' ) pc_mob.y += dist;
 	}
 
 	pc_mob.walking = false;
@@ -332,6 +345,8 @@ function game_loop(frame, elapsed){
 //
 
 function render(frame){
+
+//console.log('render', frame);
 
 	var canvas = document.getElementById('playarea');
 	canvas.width = canvas_size[0];
@@ -401,7 +416,7 @@ body {
 #playarea {
 	position: absolute;
 	left: 20px;
-	top: 20px;
+	top: 30px;
 	border: 1px solid #666;
 	background-color: #f5f5f5;
 }
@@ -409,3 +424,5 @@ body {
 </style>
 
 <canvas id="playarea"></canvas>
+
+<div id="debug"></div>
