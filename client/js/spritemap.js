@@ -10,7 +10,7 @@ function SycamoreSpritemap(animations, speed){
 
 		var ts = g_tilesets[tileset_name];
 		if (!ts){
-			create_tileset(tileset_name, tileset_name, 64, 64);
+			create_tileset(tileset_name, 64, 64);
 			return;
 		}
 		if (!ts.ready) return;

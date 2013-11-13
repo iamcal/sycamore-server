@@ -35,7 +35,11 @@ function SycamoreTileset(src, w, h){
 
 var g_tilesets = {};
 
-function create_tileset(name, src, w, h){
+function create_tileset(src, w, h){
 
-	g_tilesets[name] = new SycamoreTileset(src, w, h);
+	if (!g_tilesets[src]){
+		g_tilesets[src] = new SycamoreTileset(src, w, h);
+	}
+
+	return g_tilesets[src];
 }
