@@ -15,6 +15,8 @@ function SycamoreMob(w, h){
 
 	this.blt = function(ctx, animation, frame, x, y){
 
+animation = 'die';
+
 		var idx = self.spritemap.animate_to(animation, frame);
 
 		if (idx[0] < 0) return;
@@ -28,9 +30,9 @@ function SycamoreMob(w, h){
 	this.draw = function(ctx, frame){
 
 		if (self.walking){
-			self.blt(ctx, self.direction, frame, self.x, self.y);
+			self.blt(ctx, self.animation + '-' + self.direction, frame, self.x, self.y);
 		}else{
-			self.blt(ctx, self.direction, 0, self.x, self.y);
+			self.blt(ctx, self.animation + '-' + self.direction, 0, self.x, self.y);
 		}
 	};
 
