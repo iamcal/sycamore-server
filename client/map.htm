@@ -1,0 +1,127 @@
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/tileset.js"></script>
+<script type="text/javascript" src="js/interval.js"></script>
+<script type="text/javascript" src="js/map.js"></script>
+<script type="text/javascript" src="js/waitlist.js"></script>
+<script type="text/javascript" src="map_test1.js"></script>
+<script type="text/javascript">
+
+//
+// the globals
+//
+
+var g_fps = 30;
+
+var g_map = {}; // info about the current map (data, tileset, map buffer, tileset buffer) will go here
+var g_loaded = { // this lets us know which things are still loading
+	map: false,
+	misc: false,
+};
+
+var canvas_size = [640, 480];
+var player_pos = [500,10];
+var map_offset = [0,0];
+
+var new_map = null;
+var pc_ts = null;
+
+var keys_down = {};
+
+$(document).ready(function(){
+
+	new_map = new SycamoreMap(map_data);
+
+	pc_ts = create_tileset('img/lpc/body/female/tanned.png', 64, 64);
+
+	$(document).keydown(function(ev){
+		keys_down[ev.keyCode] = true;
+	}).keyup(function(ev){
+		delete keys_down[ev.keyCode];
+	}).blur(function(){
+		keys_down = {};
+	});
+
+	startGameLoop(game_loop, 30);
+});
+
+var pc_walking = false;
+var pc_direction = 'd';
+
+function game_loop(frame, elapsed){
+
+	if (pc_walking){
+		var dist = 30 * elapsed;
+
+		if (pc_direction == 'w') player_pos[0] -= dist;
+		if (pc_direction == 'e') player_pos[0] += dist;
+		if (pc_direction == 'n') player_pos[1] -= dist;
+		if (pc_direction == 's') player_pos[1] += dist;
+
+		if (player_pos[0] < 0) player_pos[0] = 0;
+		if (player_pos[1] < 0) player_pos[1] = 0;
+	}
+
+	pc_walking = false;
+	if (keys_down[37]){ pc_direction = 'w'; pc_walking = true; } // left
+	if (keys_down[39]){ pc_direction = 'e'; pc_walking = true; } // right
+	if (keys_down[38]){ pc_direction = 'n'; pc_walking = true; } // up
+	if (keys_down[40]){ pc_direction = 's'; pc_walking = true; } // down
+
+	render(frame);
+}
+
+function render(frame){
+
+	var canvas = document.getElementById('playarea');
+	canvas.width = canvas_size[0];
+	canvas.height = canvas_size[1];
+
+	var ctx = canvas.getContext("2d");
+	ctx.clearRect(0, 0, canvas_size[0], canvas_size[1]);
+
+	map_offset = get_map_pos(new_map, player_pos);
+
+	if (new_map.ready) ctx.drawImage(new_map.buffer, map_offset[0], map_offset[1]);
+
+	if (pc_ts.ready) pc_ts.blt_tile(ctx, 0, 10, map_offset[0]+player_pos[0], map_offset[1]+player_pos[1]);
+}
+
+function get_map_pos(map, camera){
+
+	// first, position the map to put the camera position in the middle of the canvas
+	var px = (canvas_size[0] >> 1) - camera[0];
+	var py = (canvas_size[1] >> 1) - camera[1];
+
+	// then make sure we're within bounds
+	if (px > 0) px = 0;
+	if (py > 0) py = 0;
+	if (px < 0 - (map.w - canvas_size[0])) px = 0 - (map.w - canvas_size[0]);
+	if (py < 0 - (map.h - canvas_size[1])) py = 0 - (map.h - canvas_size[1]);
+
+	// check we don't need to just center it (when map is smaller than display canvas)
+	if (map.w < canvas_size[0]) px = (canvas_size[0] >> 1) - Math.round(map.w / 2);
+	if (map.h < canvas_size[1]) py = (canvas_size[1] >> 1) - Math.round(map.h / 2);
+
+	return [px, py];
+}
+
+</script>
+<style>
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#playarea {
+	position: absolute;
+	left: 20px;
+	top: 30px;
+	border: 1px solid #666;
+	background-color: #f5f5f5;
+}
+
+</style>
+
+<canvas id="playarea"></canvas>
+
+<div id="debug"></div>
