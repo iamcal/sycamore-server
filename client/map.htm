@@ -3,6 +3,7 @@
 <script type="text/javascript" src="js/interval.js"></script>
 <script type="text/javascript" src="js/map.js"></script>
 <script type="text/javascript" src="js/waitlist.js"></script>
+<script type="text/javascript" src="js/sycamore.keyboard.js"></script>
 <script type="text/javascript" src="map_test1.js"></script>
 <script type="text/javascript">
 
@@ -25,21 +26,11 @@ var map_offset = [0,0];
 var new_map = null;
 var pc_ts = null;
 
-var keys_down = {};
-
 $(document).ready(function(){
 
 	new_map = new SycamoreMap(map_data);
 
 	pc_ts = create_tileset('img/lpc/body/female/tanned.png', 64, 64);
-
-	$(document).keydown(function(ev){
-		keys_down[ev.keyCode] = true;
-	}).keyup(function(ev){
-		delete keys_down[ev.keyCode];
-	}).blur(function(){
-		keys_down = {};
-	});
 
 	startGameLoop(game_loop, 30);
 });
@@ -62,10 +53,12 @@ function game_loop(frame, elapsed){
 	}
 
 	pc_walking = false;
-	if (keys_down[37]){ pc_direction = 'w'; pc_walking = true; } // left
-	if (keys_down[39]){ pc_direction = 'e'; pc_walking = true; } // right
-	if (keys_down[38]){ pc_direction = 'n'; pc_walking = true; } // up
-	if (keys_down[40]){ pc_direction = 's'; pc_walking = true; } // down
+
+	var dir = sycamore_keyboard.getDir();
+	if (dir){
+		pc_direction = dir;
+		pc_walking = true;
+	}
 
 	render(frame);
 }
