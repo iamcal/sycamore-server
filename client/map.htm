@@ -20,7 +20,7 @@ var g_loaded = { // this lets us know which things are still loading
 };
 
 var canvas_size = [640, 480];
-var player_pos = [500,10];
+var player_pos = [500,100];
 var map_offset = [0,0];
 
 var new_map = null;
@@ -41,7 +41,7 @@ var pc_direction = 'd';
 function game_loop(frame, elapsed){
 
 	if (pc_walking){
-		var dist = 30 * elapsed;
+		var dist = 10 * elapsed;
 
 		if (pc_direction == 'w') player_pos[0] -= dist;
 		if (pc_direction == 'e') player_pos[0] += dist;
@@ -76,7 +76,11 @@ function render(frame){
 
 	if (new_map.ready) ctx.drawImage(new_map.buffer, map_offset[0], map_offset[1]);
 
-	if (pc_ts.ready) pc_ts.blt_tile(ctx, 0, 10, map_offset[0]+player_pos[0], map_offset[1]+player_pos[1]);
+	if (pc_ts.ready) pc_ts.blt_tile(ctx, 0, 10, map_offset[0]+player_pos[0] - 32, map_offset[1]+player_pos[1] - 60);
+
+	ctx.beginPath();
+	ctx.arc(map_offset[0]+player_pos[0], map_offset[1]+player_pos[1], 5, 0, 2*Math.PI);
+	ctx.stroke();
 }
 
 function get_map_pos(map, camera){

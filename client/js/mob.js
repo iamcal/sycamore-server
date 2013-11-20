@@ -1,6 +1,6 @@
 
 
-function SycamoreMob(w, h){
+function SycamoreMob(w, h, center_x, center_y){
 
 	var self = this;
 
@@ -13,9 +13,12 @@ function SycamoreMob(w, h){
 	this.x = 100;
 	this.y = 100;
 
+	this.offsetX = 0 - center_x;
+	this.offsetY = 0 - center_y;
+
 	this.blt = function(ctx, animation, frame, x, y){
 
-animation = 'die';
+//animation = 'die';
 
 		var idx = self.spritemap.animate_to(animation, frame);
 
@@ -23,8 +26,21 @@ animation = 'die';
 
 		for (var i=0; i<self.layers.length; i++){
 
-			self.spritemap.blt(ctx, self.layers[i], idx[0], idx[1], x, y);
+			self.spritemap.blt(ctx, self.layers[i], idx[0], idx[1], x + this.offsetX, y + this.offsetY);
 		}
+
+		//debug
+		ctx.beginPath();
+		ctx.arc(x, y, 5, 0, 2*Math.PI);
+
+		ctx.fillStyle="yellow";
+		ctx.fill();
+
+		ctx.strokeStyle="#00f";
+		ctx.lineWidth='2';
+		ctx.stroke();
+		
+		ctx.closePath();
 	};
 
 	this.draw = function(ctx, frame){
