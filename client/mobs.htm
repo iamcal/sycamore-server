@@ -3,6 +3,7 @@
 <script type="text/javascript" src="js/spritemap.js"></script>
 <script type="text/javascript" src="js/mob.js"></script>
 <script type="text/javascript" src="js/interval.js"></script>
+<script type="text/javascript" src="js/sycamore.keyboard.js"></script>
 <script type="text/javascript">
 
 //
@@ -22,8 +23,6 @@ var players = [];
 var canvas_size = [640, 480];
 var player_pos = [10,10];
 var map_offset = [0,0];
-
-var keys_down = {};
 
 $(document).ready(function(){
 
@@ -45,15 +44,6 @@ $(document).ready(function(){
 			[14, 9,75,26,26,26,26,72, 9, 9, 9, 9, 9, 9,10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
 		]
 	});
-
-	$(document).keydown(function(ev){
-		keys_down[ev.keyCode] = true;
-	}).keyup(function(ev){
-		delete keys_down[ev.keyCode];
-	}).blur(function(){
-		keys_down = {};
-	});
-
 });
 
 ///////////////////////////////////////////////
@@ -354,10 +344,12 @@ function game_loop(frame, elapsed){
 	}
 
 	pc_mob.walking = false;
-	if (keys_down[37]){ pc_mob.direction = 'w'; pc_mob.walking = true; } // left
-	if (keys_down[39]){ pc_mob.direction = 'e'; pc_mob.walking = true; } // right
-	if (keys_down[38]){ pc_mob.direction = 'n'; pc_mob.walking = true; } // up
-	if (keys_down[40]){ pc_mob.direction = 's'; pc_mob.walking = true; } // down
+
+	var dir = sycamore_keyboard.getDir();
+	if (dir){
+		pc_mob.direction = dir;
+		pc_mob.walking = true;
+	}
 
 	render(frame);
 }
