@@ -1,8 +1,8 @@
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript" src="js/tileset.js"></script>
 <script type="text/javascript" src="js/spritemap.js"></script>
-<script type="text/javascript" src="js/mob.js"></script>
 <script type="text/javascript" src="js/interval.js"></script>
+<script type="text/javascript" src="js/sycamore.mob.js"></script>
 <script type="text/javascript" src="js/sycamore.keyboard.js"></script>
 <script type="text/javascript">
 
@@ -304,6 +304,9 @@ function init_tiles(){
 	pc_mob.walking = false;
 	pc_mob.direction = 's';
 	pc_mob.animation = 'walk';
+
+	pc_mob.debugCenter = true;
+	pc_mob.debugCollision = true;
 
 
 	var wait = new waitlist();
