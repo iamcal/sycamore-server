@@ -1,5 +1,5 @@
 
-function SycamoreSpritemap(animations, speed){
+function SycamoreAnimationSet(animations, speed){
 
 	var self = this;
 
@@ -39,9 +39,9 @@ function SycamoreSpritemap(animations, speed){
 	return self;
 }
 
-var g_spritemaps = {};
+var g_animation_sets = {};
 
-function create_spritemap(name, animations, speed){
+function create_animation_set(name, animations, speed){
 
-	g_spritemaps[name] = new SycamoreSpritemap(animations, speed);
+	g_animation_sets[name] = new SycamoreAnimationSet(animations, speed);
 }

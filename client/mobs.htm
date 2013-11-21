@@ -1,7 +1,7 @@
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript" src="js/tileset.js"></script>
-<script type="text/javascript" src="js/spritemap.js"></script>
 <script type="text/javascript" src="js/interval.js"></script>
+<script type="text/javascript" src="js/sycamore.animationset.js"></script>
 <script type="text/javascript" src="js/sycamore.mob.js"></script>
 <script type="text/javascript" src="js/sycamore.keyboard.js"></script>
 <script type="text/javascript">
@@ -251,7 +251,7 @@ function init_tiles(){
 	s1 = new spritemap('bunnies.gif');
 	edit_bg = new spritemap('bg.gif');
 
-	create_spritemap('pc', {
+	create_animation_set('pc', {
 
 		'cast-n' : [0,0,1,0,2,0,3,0,4,0,5,0,6,0],
 		'cast-w' : [0,1,1,1,2,1,3,1,4,1,5,1,6,1],
@@ -282,7 +282,7 @@ function init_tiles(){
 	}, 3);
 
 	pc_mob = new SycamoreMob(64, 64, 32, 60);
-	pc_mob.spritemap = g_spritemaps['pc'];
+	pc_mob.spritemap = g_animation_sets['pc'];
 	pc_mob.layers = [
 		//'img/lpc/behind_body/cape/normal/female/cape_white.png',
 		'img/lpc/body/female/tanned.png',
@@ -298,8 +298,6 @@ function init_tiles(){
 		'img/lpc/torso/plate/arms_female.png',
 		'img/lpc/torso/plate/chest_female.png',
 		'img/lpc/weapons/right hand/female/dagger_female.png',
-
-
 	];
 	pc_mob.walking = false;
 	pc_mob.direction = 's';
