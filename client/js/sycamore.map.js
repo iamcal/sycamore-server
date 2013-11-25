@@ -61,6 +61,8 @@ function SycamoreMap(data){
 			}
 		}
 
+		if (layer_data.name == 'collide') collision_manager.addMapLayer(layer_data);
+
 		console.log('created map layer : '+layer_data.name);
 
 		return buffer;
