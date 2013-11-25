@@ -22,10 +22,14 @@ function SycamoreAnimationSet(animations, speed){
 	// determine which tile index to use to this frame of
 	// this animation.
 
-	this.animate_to = function(animation_name, frame){
+	this.animate_to = function(animation_name, frame, run_speed){
 
 		var ani = this.animations[animation_name];
 		if (!ani) return [-1, -1];
+
+		// ani.length	-> number of real frames in animation
+		// speed	-> number of times to show each real frame
+		// run_speed	-> multiplier for movement speed
 
 		var f = 0+frame;
 

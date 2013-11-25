@@ -4,7 +4,7 @@ function SycamoreMob(w, h, center_x, center_y){
 
 	var self = this;
 
-	this.spritemap = null;
+	this.animation_set = null;
 	this.layers = [];
 
 	this.w = w;
@@ -13,12 +13,16 @@ function SycamoreMob(w, h, center_x, center_y){
 	this.x = 100;
 	this.y = 100;
 
+	this.real_x = 100;
+	this.real_y = 100;
+
 	this.offsetX = 0 - center_x;
 	this.offsetY = 0 - center_y;
 
 	this.debugCenter = false;
 	this.debugCollision = false;
 
+	this.speed = 1.5;
 
 	this.blt = function(ctx, animation, frame, x, y){
 
@@ -39,13 +43,13 @@ function SycamoreMob(w, h, center_x, center_y){
 
 //animation = 'die';
 
-		var idx = self.spritemap.animate_to(animation, frame);
+		var idx = self.animation_set.animate_to(animation, frame, self.speed);
 
 		if (idx[0] < 0) return;
 
 		for (var i=0; i<self.layers.length; i++){
 
-			self.spritemap.blt(ctx, self.layers[i], idx[0], idx[1], x + this.offsetX, y + this.offsetY);
+			self.animation_set.blt(ctx, self.layers[i], idx[0], idx[1], x + this.offsetX, y + this.offsetY);
 		}
 
 
@@ -73,6 +77,27 @@ function SycamoreMob(w, h, center_x, center_y){
 		}else{
 			self.blt(ctx, self.animation + '-' + self.direction, 0, self.x, self.y);
 		}
+	};
+
+
+	//
+	// self.speed = pixels we can move per run-frame
+	//
+
+	this.moveX = function(direction, frames){
+
+		var dx = (direction > 0 ? 1 : -1) * self.speed * frames;
+
+		self.real_x += dx;
+		self.x = Math.round(self.real_x);
+	};
+
+	this.moveY = function(direction, frames){
+
+		var dy = (direction > 0 ? 1 : -1) * self.speed * frames;
+
+		self.real_y += dy;
+		self.y = Math.round(self.real_y);
 	};
 
 

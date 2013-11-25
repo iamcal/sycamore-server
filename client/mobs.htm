@@ -282,7 +282,7 @@ function init_tiles(){
 	}, 3);
 
 	pc_mob = new SycamoreMob(64, 64, 32, 60);
-	pc_mob.spritemap = g_animation_sets['pc'];
+	pc_mob.animation_set = g_animation_sets['pc'];
 	pc_mob.layers = [
 		//'img/lpc/behind_body/cape/normal/female/cape_white.png',
 		'img/lpc/body/female/tanned.png',
@@ -322,7 +322,7 @@ function init_tiles(){
 	// start the render loop @ 30 fps
 	//
 
-	startGameLoop(game_loop, 30);
+	startGameLoop(game_loop, 60);
 }
 
 ///////////////////////////////////////////////
@@ -333,23 +333,48 @@ function init_tiles(){
 
 function game_loop(frame, elapsed){
 
-	// if pc was walking last loop, move them now before we decide on a new
-	// direction. by multiplying by 'elapsed', we move them 50 pixels per second.
 
-	if (pc_mob.walking){
-		var dist = 3 * elapsed;
-		if (pc_mob.direction == 'w') pc_mob.x -= dist;
-		if (pc_mob.direction == 'e') pc_mob.x += dist;
-		if (pc_mob.direction == 'n') pc_mob.y -= dist;
-		if (pc_mob.direction == 's') pc_mob.y += dist;
+	//
+	// fixed loop demo
+	//
+
+	if (pc_mob.direction == 'e'){
+		if (pc_mob.x > 400){
+			pc_mob.direction = 'w';
+		}
+	}else if (pc_mob.direction == 'w'){
+		if (pc_mob.x < 100){
+			pc_mob.direction = 'e';
+		}
+	}else{
+		pc_mob.direction = 'e';
 	}
 
-	pc_mob.walking = false;
+	pc_mob.walking = true;
 
-	var dir = sycamore_keyboard.getDir();
-	if (dir){
-		pc_mob.direction = dir;
-		pc_mob.walking = true;
+	if (pc_mob.direction == 'e') pc_mob.moveX(1, elapsed);
+	if (pc_mob.direction == 'w') pc_mob.moveX(-1, elapsed);
+
+
+	if (false){
+
+		// if pc was walking last loop, move them now before we decide on a new
+		// direction. by multiplying by 'elapsed', we move them 50 pixels per second.
+
+		if (pc_mob.walking){
+			if (pc_mob.direction == 'w') pc_mob.moveX(-1, elapsed);
+			if (pc_mob.direction == 'e') pc_mob.moveX(1, elapsed);
+			if (pc_mob.direction == 'n') pc_mob.moveY(-1, elapsed);
+			if (pc_mob.direction == 's') pc_mob.moveY(1, elapsed);
+		}
+
+		pc_mob.walking = false;
+
+		var dir = sycamore_keyboard.getDir();
+		if (dir){
+			pc_mob.direction = dir;
+			pc_mob.walking = true;
+		}
 	}
 
 	render(frame);
