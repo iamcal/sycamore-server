@@ -4,7 +4,7 @@
 <script type="text/javascript" src="js/map.js"></script>
 <script type="text/javascript" src="js/waitlist.js"></script>
 <script type="text/javascript" src="js/sycamore.keyboard.js"></script>
-<script type="text/javascript" src="map_test1.js"></script>
+<script type="text/javascript" src="map_test2.js"></script>
 <script type="text/javascript">
 
 //
@@ -20,7 +20,7 @@ var g_loaded = { // this lets us know which things are still loading
 };
 
 var canvas_size = [640, 480];
-var player_pos = [500,100];
+var player_pos = [450,200];
 var map_offset = [0,0];
 
 var new_map = null;
@@ -74,7 +74,12 @@ function render(frame){
 
 	map_offset = get_map_pos(new_map, player_pos);
 
-	if (new_map.ready) ctx.drawImage(new_map.buffer, map_offset[0], map_offset[1]);
+	if (new_map.ready) new_map.blt(ctx, map_offset[0], map_offset[1]);
+
+
+	//
+	// fake player
+	//
 
 	if (pc_ts.ready) pc_ts.blt_tile(ctx, 0, 10, map_offset[0]+player_pos[0] - 32, map_offset[1]+player_pos[1] - 60);
 

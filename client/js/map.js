@@ -8,6 +8,7 @@ function SycamoreMap(data){
 
 	this.w = 0; // total pixel dimensions
 	this.h = 0; // total pixel dimensions
+	this.layers = [];
 
 	this.init = function(){
 
@@ -29,21 +30,30 @@ function SycamoreMap(data){
 
 	this.createMap = function(){
 
-		self.buffer = document.createElement('canvas');
+		for (var i=0; i<self.data.layers.length; i++){
 
-		var ctx = self.buffer.getContext("2d");
+			self.layers[i] = self.createMapLayer(self.data.layers[i]);
+		}
+
+		self.ready = true;
+	};
+
+	this.createMapLayer = function(layer_data){
+
+		var buffer = document.createElement('canvas');
+		var ctx = buffer.getContext("2d");
 
 		self.w = self.data.tilewidth  * self.data.width;
 		self.h = self.data.tileheight * self.data.height;
 
-		self.buffer.width = self.w;
-		self.buffer.height = self.h;
+		buffer.width = self.w;
+		buffer.height = self.h;
 
 		for (var y=0; y<self.data.height; y++){
 			for (var x=0; x<self.data.height; x++){
 
 				var idx = (y * self.data.height) + x;
-				var val = self.data.layers[0].data[idx];
+				var val = layer_data.data[idx];
 
 				var tileset = g_tilesets["../tiles/terrain_atlas.png"];
 
@@ -51,9 +61,18 @@ function SycamoreMap(data){
 			}
 		}
 
-		console.log('created map layer');
-		self.ready = true;
+		console.log('created map layer : '+layer_data.name);
+
+		return buffer;
 	};
+
+	this.blt = function(ctx, x, y){
+
+		for (var i=0; i<self.layers.length; i++){
+			ctx.drawImage(self.layers[i], x, y);
+		}
+	};
+
 
 	this.init();
 
