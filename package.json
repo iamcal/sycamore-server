@@ -1,0 +1,25 @@
+{
+  "name": "sycamore-server",
+  "version": "1.0.0",
+  "description": "Sycamore Server",
+  "main": "server.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+    "jquery": "^3.6.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamcal/sycamore-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iamcal/sycamore-server/issues"
+  },
+  "homepage": "https://github.com/iamcal/sycamore-server#readme"
+}
